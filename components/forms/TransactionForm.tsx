@@ -137,7 +137,7 @@ export default function TransactionForm({
         <button
           disabled={!valid}
           onClick={handleSave}
-          className="flex-1 rounded-lg bg-primary py-2.5 font-medium text-white disabled:opacity-40"
+          className="flex-1 rounded-lg bg-primary py-2.5 font-medium text-primary-ink disabled:opacity-40"
         >
           {existing ? "Save changes" : "Add transaction"}
         </button>

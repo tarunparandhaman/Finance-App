@@ -10,17 +10,14 @@ export default function AppleIcon() {
         style={{
           width: 180,
           height: 180,
-          background: "#2563eb",
+          background: "#00c805",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "white",
           fontSize: 100,
-          fontWeight: 700,
-          fontFamily: "sans-serif",
         }}
       >
-        ₹
+        🐷
       </div>
     ),
     { ...size }

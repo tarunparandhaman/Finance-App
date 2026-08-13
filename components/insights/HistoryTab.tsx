@@ -49,43 +49,45 @@ export default function HistoryTab() {
     <div className="space-y-4 pb-8">
       <button
         onClick={handleSnapshot}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-white"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-ink md:w-auto md:px-6"
       >
         <Camera size={16} />
         Take snapshot of today&apos;s net worth
       </button>
 
       {snapshots.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted">
+        <div className="card border-dashed p-8 text-center text-sm text-muted">
           Take your first snapshot to start tracking net worth over time.
         </div>
       ) : (
-        <>
-          <div className="card p-4">
-            <h3 className="mb-3 text-sm font-medium">Net worth over time</h3>
-            <NetWorthChart snapshots={snapshots} />
-          </div>
+        <div className="md:grid md:grid-cols-3 md:items-start md:gap-4">
+          <div className="space-y-4 md:col-span-2">
+            <div className="card p-4 md:p-6">
+              <h3 className="mb-3 text-sm font-medium">Net worth over time</h3>
+              <NetWorthChart snapshots={snapshots} />
+            </div>
 
-          {stats && (
-            <div className="grid grid-cols-3 gap-3">
-              <div className="card p-3">
-                <div className="text-xs text-muted">Growth</div>
-                <div className={`text-sm font-semibold ${stats.growth >= 0 ? "text-positive" : "text-negative"}`}>
-                  {formatPercent(stats.growthPercent)}
+            {stats && (
+              <div className="grid grid-cols-3 gap-3">
+                <div className="card p-3 md:p-4">
+                  <div className="text-xs text-muted">Growth</div>
+                  <div className={`text-sm font-semibold tabular-nums md:text-base ${stats.growth >= 0 ? "text-positive" : "text-negative"}`}>
+                    {formatPercent(stats.growthPercent)}
+                  </div>
+                </div>
+                <div className="card p-3 md:p-4">
+                  <div className="text-xs text-muted">Best jump</div>
+                  <div className="text-sm font-semibold tabular-nums text-positive md:text-base">{formatINR(stats.bestGain)}</div>
+                </div>
+                <div className="card p-3 md:p-4">
+                  <div className="text-xs text-muted">Snapshots</div>
+                  <div className="text-sm font-semibold tabular-nums md:text-base">{stats.count}</div>
                 </div>
               </div>
-              <div className="card p-3">
-                <div className="text-xs text-muted">Best jump</div>
-                <div className="text-sm font-semibold text-positive">{formatINR(stats.bestGain)}</div>
-              </div>
-              <div className="card p-3">
-                <div className="text-xs text-muted">Snapshots</div>
-                <div className="text-sm font-semibold">{stats.count}</div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          <div className="card p-4">
+          <div className="card mt-4 p-4 md:mt-0 md:p-6">
             <h3 className="mb-3 text-sm font-medium">Snapshot history</h3>
             <div className="space-y-1">
               {sorted.map((s) => (
@@ -98,7 +100,7 @@ export default function HistoryTab() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold">{formatINR(s.netWorthInr)}</span>
+                    <span className="font-semibold tabular-nums">{formatINR(s.netWorthInr)}</span>
                     <button
                       onClick={() => confirm("Delete this snapshot?") && deleteSnapshot(s.id)}
                       className="text-muted hover:text-negative"
@@ -111,7 +113,7 @@ export default function HistoryTab() {
               ))}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

@@ -22,9 +22,11 @@ function InsightsPageInner() {
   const [tab, setTab] = useState<InsightsTab>(initialTab);
 
   return (
-    <PageShell title="Insights">
+    <PageShell title="Insights" wide>
       <div className="space-y-4">
-        <SegmentedControl options={TAB_OPTIONS} value={tab} onChange={setTab} />
+        <div className="md:max-w-xs">
+          <SegmentedControl options={TAB_OPTIONS} value={tab} onChange={setTab} />
+        </div>
         {tab === "CASHFLOW" && <CashflowTab />}
         {tab === "ALLOCATION" && <AllocationTab />}
         {tab === "HISTORY" && <HistoryTab />}

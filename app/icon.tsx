@@ -11,17 +11,14 @@ export default function Icon() {
           width: 48,
           height: 48,
           borderRadius: 10,
-          background: "#2563eb",
+          background: "#00c805",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "white",
           fontSize: 28,
-          fontWeight: 700,
-          fontFamily: "sans-serif",
         }}
       >
-        ₹
+        🐷
       </div>
     ),
     { ...size }

@@ -89,16 +89,18 @@ export default function DashboardPage() {
   const isEmpty = holdings.length === 0 && liabilities.length === 0;
 
   return (
-    <PageShell title="Net Worth" action={<RefreshButton />}>
+    <PageShell title="Net Worth" action={<RefreshButton />} wide>
       <div className="space-y-6">
-        <div className="hero-card p-5">
-          <div className="text-sm text-white/75">Net worth</div>
-          <div className="mt-1 text-4xl font-bold tracking-tight tabular-nums">{formatINR(netWorth)}</div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/75">
+        <div className="hero-card p-6 md:p-10">
+          <div className="text-sm text-white/70 md:text-base">Net worth</div>
+          <div className="mt-1 text-4xl font-extrabold tracking-tight tabular-nums md:text-6xl">
+            {formatINR(netWorth)}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-white/70 md:text-sm">
             {trend && (
               <span
                 className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 font-medium text-white ${
-                  trend.change >= 0 ? "bg-white/20" : "bg-black/25"
+                  trend.change >= 0 ? "bg-primary/25" : "bg-negative/25"
                 }`}
               >
                 {trend.change >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
@@ -109,125 +111,138 @@ export default function DashboardPage() {
           </div>
 
           {(investedTotal > 0 || liabilitiesTotal > 0) && (
-            <div className="mt-4 grid grid-cols-3 gap-3 border-t border-white/20 pt-3 text-xs">
+            <div className="mt-6 grid grid-cols-3 gap-3 border-t border-white/10 pt-4 text-xs md:max-w-md md:text-sm">
               <div>
-                <div className="text-white/70">Invested</div>
-                <div className="font-semibold tabular-nums">{formatINR(investedTotal)}</div>
+                <div className="text-white/50">Invested</div>
+                <div className="font-semibold tabular-nums text-white">{formatINR(investedTotal)}</div>
               </div>
               <div>
-                <div className="text-white/70">Returns</div>
-                <div className="font-semibold tabular-nums">
+                <div className="text-white/50">Returns</div>
+                <div className={`font-semibold tabular-nums ${totalGain >= 0 ? "text-primary" : "text-negative"}`}>
                   {totalGain >= 0 ? "+" : ""}
                   {formatPercent(totalGainPercent)}
                 </div>
               </div>
               <div>
-                <div className="text-white/70">Debts</div>
-                <div className="font-semibold tabular-nums">{formatINR(liabilitiesTotal)}</div>
+                <div className="text-white/50">Debts</div>
+                <div className="font-semibold tabular-nums text-white">{formatINR(liabilitiesTotal)}</div>
               </div>
             </div>
           )}
         </div>
 
         {isEmpty ? (
-          <div className="card border-dashed p-8 text-center">
-            <p className="mb-4 text-sm text-muted">
+          <div className="card border-dashed p-8 text-center md:p-14">
+            <p className="mb-4 text-sm text-muted md:text-base">
               You haven&apos;t added anything yet. Start with your stocks, mutual funds, PF, NPS or other savings.
             </p>
             <div className="flex justify-center gap-3">
-              <Link href="/invest" className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-white">
+              <Link href="/invest" className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-ink">
                 Add investments
               </Link>
-              <Link href="/save" className="rounded-full border border-border px-4 py-2 text-sm font-medium">
+              <Link href="/save" className="rounded-full border border-border px-5 py-2.5 text-sm font-medium">
                 Add savings
               </Link>
             </div>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-3 gap-2">
-              <Link href="/insights?tab=CASHFLOW" className="card p-3 text-center active:shadow-none">
-                <PieChart size={16} className="mx-auto mb-1 text-primary" />
-                <div className="text-xs text-muted">This month</div>
-                <div className="text-sm font-semibold tabular-nums">{formatPercent(monthSummary.savingsRate)}</div>
-                <div className="text-[10px] text-muted">saved</div>
-              </Link>
-              <Link href="/insights?tab=ALLOCATION" className="card p-3 text-center active:shadow-none">
-                <Scale size={16} className="mx-auto mb-1 text-primary" />
-                <div className="text-xs text-muted">Allocation</div>
-                <div className="text-sm font-semibold">Rebalance</div>
-                <div className="text-[10px] text-muted">check fit</div>
-              </Link>
-              <Link href="/insights?tab=HISTORY" className="card p-3 text-center active:shadow-none">
-                <LineChartIcon size={16} className="mx-auto mb-1 text-primary" />
-                <div className="text-xs text-muted">History</div>
-                <div className="text-sm font-semibold">Snapshot</div>
-                <div className="text-[10px] text-muted">net worth</div>
-              </Link>
-            </div>
+          <div className="md:grid md:grid-cols-3 md:items-start md:gap-6">
+            <div className="space-y-6 md:col-span-2">
+              {chartData.some((c) => c.value > 0) && (
+                <div className="card p-4 md:p-6">
+                  <h2 className="mb-1 text-sm font-semibold md:text-base">Where your money is</h2>
+                  <DonutChart data={chartData} total={assetsTotal} />
+                </div>
+              )}
 
-            {chartData.some((c) => c.value > 0) && (
-              <div className="card p-4">
-                <h2 className="mb-1 text-sm font-semibold">Where your money is</h2>
-                <DonutChart data={chartData} total={assetsTotal} />
-              </div>
-            )}
-
-            {categoriesWithHoldings.length > 0 && (
-              <div className="space-y-2">
-                <h2 className="px-1 text-sm font-medium text-muted">Breakdown</h2>
-                {categoriesWithHoldings.map((cat) => {
-                  const route = CATEGORY_ROUTE[cat];
-                  const value = byCategory[cat] ?? 0;
-                  const pct = assetsTotal > 0 ? (value / assetsTotal) * 100 : 0;
-                  return (
-                    <Link
-                      key={cat}
-                      href={`${route.href}?tab=${route.tab}`}
-                      className="card flex items-center justify-between px-4 py-3 active:shadow-none"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <CategoryIcon category={cat} size={16} />
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium">{CATEGORY_LABELS[cat]}</div>
-                          <div className="mt-1 h-1 w-20 overflow-hidden rounded-full bg-surface-alt">
-                            <div
-                              className="h-full rounded-full"
-                              style={{ width: `${pct}%`, backgroundColor: categoryColors[cat] }}
-                            />
+              {categoriesWithHoldings.length > 0 && (
+                <div className="space-y-2">
+                  <h2 className="px-1 text-sm font-medium text-muted">Breakdown</h2>
+                  {categoriesWithHoldings.map((cat) => {
+                    const route = CATEGORY_ROUTE[cat];
+                    const value = byCategory[cat] ?? 0;
+                    const pct = assetsTotal > 0 ? (value / assetsTotal) * 100 : 0;
+                    return (
+                      <Link
+                        key={cat}
+                        href={`${route.href}?tab=${route.tab}`}
+                        className="card flex items-center justify-between px-4 py-3 transition-transform active:shadow-none md:px-5 md:py-4 md:hover:-translate-y-0.5"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <CategoryIcon category={cat} size={16} />
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium">{CATEGORY_LABELS[cat]}</div>
+                            <div className="mt-1 h-1 w-20 overflow-hidden rounded-full bg-surface-alt">
+                              <div
+                                className="h-full rounded-full"
+                                style={{ width: `${pct}%`, backgroundColor: categoryColors[cat] }}
+                              />
+                            </div>
                           </div>
                         </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <div className="text-right">
+                            <div className="text-sm font-semibold tabular-nums">{formatINR(value)}</div>
+                            <div className="text-xs text-muted tabular-nums">{pct.toFixed(1)}%</div>
+                          </div>
+                          <ChevronRight size={16} className="text-muted" />
+                        </div>
+                      </Link>
+                    );
+                  })}
+                  {liabilities.length > 0 && (
+                    <Link
+                      href="/save?tab=LIABILITY"
+                      className="card flex items-center justify-between px-4 py-3 md:px-5 md:py-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <LiabilityIcon size={16} />
+                        <span className="text-sm font-medium">Loans &amp; Debts</span>
                       </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <div className="text-right">
-                          <div className="text-sm font-semibold tabular-nums">{formatINR(value)}</div>
-                          <div className="text-xs text-muted tabular-nums">{pct.toFixed(1)}%</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-semibold text-negative tabular-nums">
+                          -{formatINR(liabilitiesTotal)}
                         </div>
                         <ChevronRight size={16} className="text-muted" />
                       </div>
                     </Link>
-                  );
-                })}
-                {liabilities.length > 0 && (
-                  <Link
-                    href="/save?tab=LIABILITY"
-                    className="card flex items-center justify-between px-4 py-3 active:shadow-none"
-                  >
-                    <div className="flex items-center gap-3">
-                      <LiabilityIcon size={16} />
-                      <span className="text-sm font-medium">Loans &amp; Debts</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm font-semibold text-negative tabular-nums">
-                        -{formatINR(liabilitiesTotal)}
-                      </div>
-                      <ChevronRight size={16} className="text-muted" />
-                    </div>
-                  </Link>
-                )}
-              </div>
-            )}
-          </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 grid grid-cols-3 gap-2 md:col-span-1 md:mt-0 md:grid-cols-1 md:gap-3">
+              <Link
+                href="/insights?tab=CASHFLOW"
+                className="card p-3 text-center transition-transform active:shadow-none md:p-5 md:text-left md:hover:-translate-y-0.5"
+              >
+                <PieChart size={16} className="mx-auto mb-1 text-primary md:mx-0 md:mb-2" />
+                <div className="text-xs text-muted md:text-sm">This month</div>
+                <div className="text-sm font-semibold tabular-nums md:text-lg">
+                  {formatPercent(monthSummary.savingsRate)}
+                </div>
+                <div className="text-[10px] text-muted md:text-xs">saved</div>
+              </Link>
+              <Link
+                href="/insights?tab=ALLOCATION"
+                className="card p-3 text-center transition-transform active:shadow-none md:p-5 md:text-left md:hover:-translate-y-0.5"
+              >
+                <Scale size={16} className="mx-auto mb-1 text-primary md:mx-0 md:mb-2" />
+                <div className="text-xs text-muted md:text-sm">Allocation</div>
+                <div className="text-sm font-semibold md:text-lg">Rebalance</div>
+                <div className="text-[10px] text-muted md:text-xs">check fit</div>
+              </Link>
+              <Link
+                href="/insights?tab=HISTORY"
+                className="card p-3 text-center transition-transform active:shadow-none md:p-5 md:text-left md:hover:-translate-y-0.5"
+              >
+                <LineChartIcon size={16} className="mx-auto mb-1 text-primary md:mx-0 md:mb-2" />
+                <div className="text-xs text-muted md:text-sm">History</div>
+                <div className="text-sm font-semibold md:text-lg">Snapshot</div>
+                <div className="text-[10px] text-muted md:text-xs">net worth</div>
+              </Link>
+            </div>
+          </div>
         )}
       </div>
     </PageShell>

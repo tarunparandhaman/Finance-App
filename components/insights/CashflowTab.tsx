@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Sheet from "@/components/Sheet";
+import FloatingActionButton from "@/components/FloatingActionButton";
 import TransactionForm from "@/components/forms/TransactionForm";
 import TrendChart from "@/components/insights/TrendChart";
 import { useFinanceStore } from "@/lib/store";
@@ -69,112 +70,124 @@ export default function CashflowTab() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="card p-4">
           <div className="text-xs text-muted">Income</div>
-          <div className="text-lg font-semibold text-positive">{formatINR(summary.income)}</div>
+          <div className="text-lg font-semibold text-positive tabular-nums">{formatINR(summary.income)}</div>
         </div>
         <div className="card p-4">
           <div className="text-xs text-muted">Expenses</div>
-          <div className="text-lg font-semibold text-negative">{formatINR(summary.expense)}</div>
+          <div className="text-lg font-semibold text-negative tabular-nums">{formatINR(summary.expense)}</div>
         </div>
         <div className="card p-4">
           <div className="text-xs text-muted">Invested</div>
-          <div className="text-lg font-semibold text-primary">{formatINR(summary.investment)}</div>
+          <div className="text-lg font-semibold text-primary tabular-nums">{formatINR(summary.investment)}</div>
         </div>
         <div className="card p-4">
           <div className="text-xs text-muted">Savings rate</div>
-          <div className="text-lg font-semibold">{formatPercent(summary.savingsRate)}</div>
+          <div className="text-lg font-semibold tabular-nums">{formatPercent(summary.savingsRate)}</div>
         </div>
       </div>
 
-      <div className="card p-4">
+      <div className="card p-4 md:p-6">
         <h3 className="mb-3 text-sm font-medium">Monthly trend</h3>
         <TrendChart data={trend} />
       </div>
 
-      {expenseByCategory.length > 0 && (
-        <div className="card p-4">
-          <h3 className="mb-3 text-sm font-medium">Expenses by category</h3>
-          <div className="space-y-2.5">
-            {expenseByCategory.map((c) => (
-              <div key={c.category}>
-                <div className="mb-1 flex justify-between text-xs">
-                  <span>{c.category}</span>
-                  <span className="text-muted">
-                    {formatINR(c.amount)} · {c.percent.toFixed(0)}%
-                  </span>
+      {(expenseByCategory.length > 0 || incomeByCategory.length > 0) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {expenseByCategory.length > 0 && (
+            <div className="card p-4 md:p-6">
+              <h3 className="mb-3 text-sm font-medium">Expenses by category</h3>
+              <div className="space-y-2.5">
+                {expenseByCategory.map((c) => (
+                  <div key={c.category}>
+                    <div className="mb-1 flex justify-between text-xs">
+                      <span>{c.category}</span>
+                      <span className="text-muted">
+                        {formatINR(c.amount)} · {c.percent.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-background">
+                      <div className="h-full rounded-full bg-negative" style={{ width: `${c.percent}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {incomeByCategory.length > 0 && (
+            <div className="card p-4 md:p-6">
+              <h3 className="mb-3 text-sm font-medium">Income by category</h3>
+              <div className="space-y-2.5">
+                {incomeByCategory.map((c) => (
+                  <div key={c.category}>
+                    <div className="mb-1 flex justify-between text-xs">
+                      <span>{c.category}</span>
+                      <span className="text-muted">
+                        {formatINR(c.amount)} · {c.percent.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-background">
+                      <div className="h-full rounded-full bg-positive" style={{ width: `${c.percent}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {(summary.expense > 0 || biggest.length > 0) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {summary.expense > 0 && (
+            <div className="card p-4 md:p-6">
+              <h3 className="mb-3 text-sm font-medium">Recurring vs one-off</h3>
+              <div className="flex gap-3 text-sm">
+                <div className="flex-1 rounded-lg bg-background p-3">
+                  <div className="text-xs text-muted">Recurring</div>
+                  <div className="font-semibold tabular-nums">{formatINR(recurring)}</div>
+                  <div className="text-xs text-muted tabular-nums">
+                    {summary.expense > 0 ? ((recurring / summary.expense) * 100).toFixed(0) : 0}%
+                  </div>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-background">
-                  <div className="h-full rounded-full bg-negative" style={{ width: `${c.percent}%` }} />
+                <div className="flex-1 rounded-lg bg-background p-3">
+                  <div className="text-xs text-muted">One-off</div>
+                  <div className="font-semibold tabular-nums">{formatINR(oneOff)}</div>
+                  <div className="text-xs text-muted tabular-nums">
+                    {summary.expense > 0 ? ((oneOff / summary.expense) * 100).toFixed(0) : 0}%
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {incomeByCategory.length > 0 && (
-        <div className="card p-4">
-          <h3 className="mb-3 text-sm font-medium">Income by category</h3>
-          <div className="space-y-2.5">
-            {incomeByCategory.map((c) => (
-              <div key={c.category}>
-                <div className="mb-1 flex justify-between text-xs">
-                  <span>{c.category}</span>
-                  <span className="text-muted">
-                    {formatINR(c.amount)} · {c.percent.toFixed(0)}%
-                  </span>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-background">
-                  <div className="h-full rounded-full bg-positive" style={{ width: `${c.percent}%` }} />
-                </div>
+          {biggest.length > 0 && (
+            <div className="card p-4 md:p-6">
+              <h3 className="mb-3 text-sm font-medium">Biggest expenses</h3>
+              <div className="space-y-2">
+                {biggest.map((t, i) => (
+                  <button
+                    key={t.id}
+                    onClick={() => openEdit(t)}
+                    className="flex w-full items-center justify-between text-sm"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs text-muted">{i + 1}</span>
+                      <span>{t.note || t.category}</span>
+                    </span>
+                    <span className="font-medium text-negative tabular-nums">{formatINR(t.amount)}</span>
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {summary.expense > 0 && (
-        <div className="card p-4">
-          <h3 className="mb-3 text-sm font-medium">Recurring vs one-off</h3>
-          <div className="flex gap-3 text-sm">
-            <div className="flex-1 rounded-lg bg-background p-3">
-              <div className="text-xs text-muted">Recurring</div>
-              <div className="font-semibold">{formatINR(recurring)}</div>
-              <div className="text-xs text-muted">{summary.expense > 0 ? ((recurring / summary.expense) * 100).toFixed(0) : 0}%</div>
             </div>
-            <div className="flex-1 rounded-lg bg-background p-3">
-              <div className="text-xs text-muted">One-off</div>
-              <div className="font-semibold">{formatINR(oneOff)}</div>
-              <div className="text-xs text-muted">{summary.expense > 0 ? ((oneOff / summary.expense) * 100).toFixed(0) : 0}%</div>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
-      {biggest.length > 0 && (
-        <div className="card p-4">
-          <h3 className="mb-3 text-sm font-medium">Biggest expenses</h3>
-          <div className="space-y-2">
-            {biggest.map((t, i) => (
-              <button
-                key={t.id}
-                onClick={() => openEdit(t)}
-                className="flex w-full items-center justify-between text-sm"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="text-xs text-muted">{i + 1}</span>
-                  <span>{t.note || t.category}</span>
-                </span>
-                <span className="font-medium text-negative">{formatINR(t.amount)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="card p-4">
+      <div className="card p-4 md:p-6">
         <h3 className="mb-3 text-sm font-medium">Transactions this month</h3>
         {sortedMonthTx.length === 0 ? (
           <p className="text-sm text-muted">No transactions yet — add one with the + button.</p>
@@ -206,17 +219,7 @@ export default function CashflowTab() {
         )}
       </div>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center">
-        <div className="flex w-full max-w-md justify-end px-5">
-          <button
-            onClick={openAdd}
-            aria-label="Add transaction"
-            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg"
-          >
-            <Plus size={26} />
-          </button>
-        </div>
-      </div>
+      <FloatingActionButton onClick={openAdd} label="Add transaction" wide />
 
       <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title={editing ? "Edit transaction" : "Add transaction"}>
         <TransactionForm existing={editing ?? undefined} onDone={() => setSheetOpen(false)} />

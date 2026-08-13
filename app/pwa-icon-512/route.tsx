@@ -9,17 +9,14 @@ export async function GET() {
         style={{
           width: 512,
           height: 512,
-          background: "#2563eb",
+          background: "#00c805",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "white",
           fontSize: 288,
-          fontWeight: 700,
-          fontFamily: "sans-serif",
         }}
       >
-        ₹
+        🐷
       </div>
     ),
     { width: 512, height: 512 }

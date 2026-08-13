@@ -46,7 +46,8 @@ export default function AllocationTab() {
 
   return (
     <div className="space-y-4 pb-8">
-      <div className="card p-4">
+      <div className="grid gap-4 md:grid-cols-2 md:items-start">
+      <div className="card p-4 md:p-6">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-medium">Target allocation</h3>
           {!editing && (
@@ -82,7 +83,7 @@ export default function AllocationTab() {
                 <button
                   onClick={saveEdit}
                   disabled={draftSum !== 100}
-                  className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+                  className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-ink disabled:opacity-40"
                 >
                   Save
                 </button>
@@ -111,7 +112,7 @@ export default function AllocationTab() {
         )}
       </div>
 
-      <div className="card p-4">
+      <div className="card p-4 md:p-6">
         <h3 className="mb-1 text-sm font-medium">Current allocation</h3>
         <div className="mb-3 text-xs text-muted">{formatINR(totalInr)} total</div>
 
@@ -154,6 +155,7 @@ export default function AllocationTab() {
             </div>
           ))}
         </div>
+      </div>
       </div>
 
       <p className="px-1 text-xs text-muted">

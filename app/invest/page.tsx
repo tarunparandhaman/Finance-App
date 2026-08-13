@@ -2,7 +2,6 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import SegmentedControl from "@/components/SegmentedControl";
 import Sheet from "@/components/Sheet";
@@ -10,6 +9,7 @@ import HoldingCard from "@/components/HoldingCard";
 import HoldingDetail from "@/components/HoldingDetail";
 import TransactionList from "@/components/TransactionList";
 import RefreshButton from "@/components/RefreshButton";
+import FloatingActionButton from "@/components/FloatingActionButton";
 import StockForm from "@/components/forms/StockForm";
 import MutualFundForm from "@/components/forms/MutualFundForm";
 import { useFinanceStore } from "@/lib/store";
@@ -77,10 +77,15 @@ function InvestPageInner() {
           : undefined
       }
       action={<RefreshButton />}
+      wide
     >
       <div className="space-y-4">
-        <SegmentedControl options={TAB_OPTIONS} value={tab} onChange={setTab} />
-        <SegmentedControl options={VIEW_OPTIONS} value={view} onChange={setView} />
+        <div className="md:flex md:items-center md:justify-between md:gap-4">
+          <SegmentedControl options={TAB_OPTIONS} value={tab} onChange={setTab} />
+          <div className="mt-2 md:mt-0 md:w-64">
+            <SegmentedControl options={VIEW_OPTIONS} value={view} onChange={setView} />
+          </div>
+        </div>
 
         {view === "HOLDINGS" ? (
           filtered.length === 0 ? (
@@ -88,7 +93,7 @@ function InvestPageInner() {
               No holdings yet in this category. Tap + to add your first one.
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 lg:grid-cols-3">
               {filtered.map((h) => (
                 <HoldingCard key={h.id} holding={h} onClick={() => setDetailId(h.id)} />
               ))}
@@ -99,17 +104,7 @@ function InvestPageInner() {
         )}
       </div>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center">
-        <div className="flex w-full max-w-md justify-end px-5">
-          <button
-            onClick={() => setAddOpen(true)}
-            aria-label="Add holding"
-            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg"
-          >
-            <Plus size={26} />
-          </button>
-        </div>
-      </div>
+      <FloatingActionButton onClick={() => setAddOpen(true)} label="Add holding" wide />
 
       <Sheet
         open={addOpen}

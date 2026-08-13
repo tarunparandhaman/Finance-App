@@ -130,7 +130,7 @@ export default function TradeForm({
         <button
           disabled={!valid}
           onClick={handleSave}
-          className="flex-1 rounded-xl bg-primary py-3 font-medium text-white disabled:opacity-40"
+          className="flex-1 rounded-xl bg-primary py-3 font-medium text-primary-ink disabled:opacity-40"
         >
           {existing ? "Save changes" : `Add ${type === "BUY" ? "buy" : "sell"}`}
         </button>

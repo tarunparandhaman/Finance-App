@@ -213,7 +213,7 @@ export default function ImportPage() {
           </div>
           <button
             onClick={() => router.push(`/invest?tab=${category}`)}
-            className="mt-2 flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white"
+            className="mt-2 flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-ink"
           >
             View holdings <ArrowRight size={15} />
           </button>
@@ -275,7 +275,7 @@ export default function ImportPage() {
 
             <button
               onClick={handleParse}
-              className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-white"
+              className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-primary-ink"
             >
               Continue
             </button>
@@ -348,7 +348,7 @@ export default function ImportPage() {
               <button
                 onClick={handleContinueToReview}
                 disabled={mapping.symbol < 0 || mapping.quantity < 0 || mapping.price < 0}
-                className="flex-1 rounded-xl bg-primary py-3 text-sm font-medium text-white disabled:opacity-40"
+                className="flex-1 rounded-xl bg-primary py-3 text-sm font-medium text-primary-ink disabled:opacity-40"
               >
                 Continue
               </button>
@@ -419,7 +419,7 @@ export default function ImportPage() {
               <button
                 onClick={handleImport}
                 disabled={readyCount === 0 || importing}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-white disabled:opacity-40"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-ink disabled:opacity-40"
               >
                 {importing && <Loader2 size={15} className="animate-spin" />}
                 Import {readyCount} holding{readyCount === 1 ? "" : "s"}

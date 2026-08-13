@@ -2,12 +2,12 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import SegmentedControl from "@/components/SegmentedControl";
 import Sheet from "@/components/Sheet";
 import HoldingCard from "@/components/HoldingCard";
 import LiabilityCard from "@/components/LiabilityCard";
+import FloatingActionButton from "@/components/FloatingActionButton";
 import RetirementForm from "@/components/forms/RetirementForm";
 import OtherForm from "@/components/forms/OtherForm";
 import LiabilityForm from "@/components/forms/LiabilityForm";
@@ -69,24 +69,24 @@ function SavePageInner() {
   const isEmpty = tab === "LIABILITY" ? liabilities.length === 0 : filteredHoldings.length === 0;
 
   return (
-    <PageShell title="Save" subtitle={formatINR(subtotal)}>
+    <PageShell title="Save" subtitle={formatINR(subtotal)} wide>
       <div className="space-y-4">
         <SegmentedControl options={TAB_OPTIONS} value={tab} onChange={setTab} />
 
         {isEmpty ? (
-          <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted">
+          <div className="card border-dashed p-8 text-center text-sm text-muted">
             {tab === "LIABILITY"
               ? "No loans or debts added yet."
               : `No ${tab === "OTHER" ? "other assets" : tab} accounts added yet.`}
           </div>
         ) : tab === "LIABILITY" ? (
-          <div className="space-y-2">
+          <div className="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 lg:grid-cols-3">
             {liabilities.map((l) => (
               <LiabilityCard key={l.id} liability={l} onClick={() => openEditLiability(l)} />
             ))}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 lg:grid-cols-3">
             {filteredHoldings.map((h) => (
               <HoldingCard key={h.id} holding={h} onClick={() => openEditHolding(h)} />
             ))}
@@ -94,17 +94,7 @@ function SavePageInner() {
         )}
       </div>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center">
-        <div className="flex w-full max-w-md justify-end px-5">
-          <button
-            onClick={openAdd}
-            aria-label="Add"
-            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg"
-          >
-            <Plus size={26} />
-          </button>
-        </div>
-      </div>
+      <FloatingActionButton onClick={openAdd} wide />
 
       <Sheet
         open={sheetOpen}

@@ -6,17 +6,24 @@ export default function PageShell({
   subtitle,
   action,
   backHref,
+  wide,
   children,
 }: {
   title: string;
   subtitle?: string;
   action?: React.ReactNode;
   backHref?: string;
+  /** Use a wider desktop container for pages with multi-column grids. */
+  wide?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col pb-24">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+1rem)] backdrop-blur">
+    <div
+      className={`mx-auto flex min-h-full max-w-md flex-col pb-24 md:pb-12 ${
+        wide ? "md:max-w-6xl" : "md:max-w-3xl"
+      }`}
+    >
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+1rem)] backdrop-blur md:static md:border-none md:bg-transparent md:px-8 md:pb-2 md:pt-10 md:backdrop-blur-none">
         <div className="flex items-center gap-1">
           {backHref && (
             <Link
@@ -28,13 +35,13 @@ export default function PageShell({
             </Link>
           )}
           <div>
-            <h1 className="text-xl font-semibold">{title}</h1>
-            {subtitle && <p className="text-sm text-muted">{subtitle}</p>}
+            <h1 className="text-xl font-semibold tracking-tight md:text-3xl">{title}</h1>
+            {subtitle && <p className="text-sm text-muted md:mt-1 md:text-base">{subtitle}</p>}
           </div>
         </div>
         {action}
       </header>
-      <main className="flex-1 px-4 pt-4">{children}</main>
+      <main className="flex-1 px-4 pt-4 md:px-8 md:pt-4">{children}</main>
     </div>
   );
 }

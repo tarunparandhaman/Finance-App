@@ -174,7 +174,7 @@ export default function StockForm({
       <button
         disabled={!valid}
         onClick={handleSave}
-        className="w-full rounded-xl bg-primary py-3 font-medium text-white disabled:opacity-40"
+        className="w-full rounded-xl bg-primary py-3 font-medium text-primary-ink disabled:opacity-40"
       >
         {existingMatch ? "Add buy transaction" : "Add holding"}
       </button>
