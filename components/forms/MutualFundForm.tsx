@@ -7,32 +7,26 @@ import { useFinanceStore } from "@/lib/store";
 import { refreshAllPrices } from "@/lib/pricing";
 import { formatNumber } from "@/lib/format";
 import type { MutualFundHolding } from "@/lib/types";
-import { Trash2, Info } from "lucide-react";
+import { Info } from "lucide-react";
 
-export default function MutualFundForm({
-  existing,
-  onDone,
-}: {
-  existing?: MutualFundHolding;
-  onDone: () => void;
-}) {
+export default function MutualFundForm({ onDone }: { onDone: () => void }) {
   const holdings = useFinanceStore((s) => s.holdings);
   const addHolding = useFinanceStore((s) => s.addHolding);
-  const updateHolding = useFinanceStore((s) => s.updateHolding);
-  const deleteHolding = useFinanceStore((s) => s.deleteHolding);
+  const addTrade = useFinanceStore((s) => s.addTrade);
 
-  const [schemeCode, setSchemeCode] = useState(existing?.schemeCode ?? "");
-  const [schemeName, setSchemeName] = useState(existing?.schemeName ?? "");
-  const [units, setUnits] = useState(existing?.units?.toString() ?? "");
-  const [avgNav, setAvgNav] = useState(existing?.avgNav?.toString() ?? "");
-  const [notes, setNotes] = useState(existing?.notes ?? "");
+  const [schemeCode, setSchemeCode] = useState("");
+  const [schemeName, setSchemeName] = useState("");
+  const [units, setUnits] = useState("");
+  const [nav, setNav] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState("");
 
   const existingMatch = useMemo(() => {
-    if (existing || !schemeCode) return undefined;
+    if (!schemeCode) return undefined;
     return holdings.find(
       (h): h is MutualFundHolding => h.category === "MUTUAL_FUND" && h.schemeCode === schemeCode
     );
-  }, [existing, schemeCode, holdings]);
+  }, [schemeCode, holdings]);
 
   async function search(query: string): Promise<AutocompleteOption[]> {
     const res = await fetch(`/api/mf-search?q=${encodeURIComponent(query)}`);
@@ -41,34 +35,29 @@ export default function MutualFundForm({
     return results.map((r) => ({ key: r.schemeCode, label: r.schemeName }));
   }
 
-  function handleSelect(opt: AutocompleteOption) {
-    setSchemeCode(opt.key);
-    setSchemeName(opt.label);
-  }
-
-  const valid = schemeCode.trim() && schemeName.trim() && Number(units) > 0 && Number(avgNav) >= 0;
+  const valid = schemeCode.trim() && schemeName.trim() && Number(units) > 0 && Number(nav) >= 0 && date;
 
   function handleSave() {
-    const enteredUnits = Number(units);
-    const enteredAvgNav = Number(avgNav);
-    const payload = {
-      category: "MUTUAL_FUND" as const,
-      schemeCode: schemeCode.trim(),
-      schemeName: schemeName.trim(),
-      name: schemeName.trim(),
-      units: enteredUnits,
-      avgNav: enteredAvgNav,
-      notes: notes.trim() || undefined,
+    const trade = {
+      type: "BUY" as const,
+      quantity: Number(units),
+      price: Number(nav),
+      date,
+      note: note.trim() || undefined,
     };
 
-    if (existing) {
-      updateHolding(existing.id, payload);
-    } else if (existingMatch) {
-      const newUnits = existingMatch.units + enteredUnits;
-      const newAvgNav = (existingMatch.units * existingMatch.avgNav + enteredUnits * enteredAvgNav) / newUnits;
-      updateHolding(existingMatch.id, { units: newUnits, avgNav: newAvgNav });
+    if (existingMatch) {
+      addTrade(existingMatch.id, trade);
     } else {
-      addHolding(payload);
+      addHolding({
+        category: "MUTUAL_FUND",
+        schemeCode: schemeCode.trim(),
+        schemeName: schemeName.trim(),
+        name: schemeName.trim(),
+        units: trade.quantity,
+        avgNav: trade.price,
+        trades: [trade],
+      });
     }
     refreshAllPrices().catch(() => {});
     onDone();
@@ -76,25 +65,32 @@ export default function MutualFundForm({
 
   return (
     <div className="space-y-4">
-      {!existing && (
-        <Field label="Search mutual fund scheme">
-          <Autocomplete placeholder="e.g. Axis Bluechip, HDFC Flexicap" onSearch={search} onSelect={handleSelect} />
-        </Field>
-      )}
-      {schemeName && (
-        <div className="rounded-lg bg-background px-3 py-2 text-sm font-medium">{schemeName}</div>
-      )}
+      <Field label="Search mutual fund scheme">
+        <Autocomplete
+          placeholder="e.g. Axis Bluechip, HDFC Flexicap"
+          onSearch={search}
+          onSelect={(opt) => {
+            setSchemeCode(opt.key);
+            setSchemeName(opt.label);
+          }}
+        />
+      </Field>
+
+      {schemeName && <div className="rounded-lg bg-surface-alt px-3 py-2 text-sm font-medium">{schemeName}</div>}
+
       {existingMatch && (
         <div className="flex items-start gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs text-primary">
           <Info size={14} className="mt-0.5 shrink-0" />
           <span>
             You already hold {formatNumber(existingMatch.units, 3)} units at an average NAV of ₹
-            {formatNumber(existingMatch.avgNav)}. This will be added to that position — not a separate row.
+            {formatNumber(existingMatch.avgNav)}. This purchase gets added to that position and shows up in its
+            transaction history.
           </span>
         </div>
       )}
+
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Units held">
+        <Field label="Units bought">
           <input
             className={inputClass}
             type="number"
@@ -104,47 +100,43 @@ export default function MutualFundForm({
             placeholder="0"
           />
         </Field>
-        <Field label="Avg buy NAV (₹)">
+        <Field label="Buy NAV (₹)">
           <input
             className={inputClass}
             type="number"
             inputMode="decimal"
-            value={avgNav}
-            onChange={(e) => setAvgNav(e.target.value)}
+            value={nav}
+            onChange={(e) => setNav(e.target.value)}
             placeholder="0.00"
           />
         </Field>
       </div>
-      <Field label="Notes (optional)">
-        <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
+
+      <Field label="Purchase date">
+        <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
+
+      <Field label="Note (optional)">
+        <input
+          className={inputClass}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="e.g. Monthly SIP"
+        />
+      </Field>
+
       <p className="text-xs text-muted">
-        Current NAV updates automatically. Units &amp; buy NAV are yours to enter — no public source knows what you
-        personally paid.
+        The latest NAV updates automatically. Units and buy NAV are yours to enter — no public source knows what
+        you personally paid.
       </p>
 
-      <div className="flex gap-2 pt-2">
-        {existing && (
-          <button
-            onClick={() => {
-              if (confirm(`Delete ${existing.name}?`)) {
-                deleteHolding(existing.id);
-                onDone();
-              }
-            }}
-            className="flex items-center justify-center rounded-lg border border-negative/30 px-4 py-2.5 text-negative"
-          >
-            <Trash2 size={18} />
-          </button>
-        )}
-        <button
-          disabled={!valid}
-          onClick={handleSave}
-          className="flex-1 rounded-lg bg-primary py-2.5 font-medium text-white disabled:opacity-40"
-        >
-          {existing ? "Save changes" : existingMatch ? "Add to position" : "Add fund"}
-        </button>
-      </div>
+      <button
+        disabled={!valid}
+        onClick={handleSave}
+        className="w-full rounded-xl bg-primary py-3 font-medium text-white disabled:opacity-40"
+      >
+        {existingMatch ? "Add purchase" : "Add fund"}
+      </button>
     </div>
   );
 }

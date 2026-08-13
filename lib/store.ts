@@ -7,18 +7,42 @@ import type {
   NetWorthSnapshot,
   AllocationTarget,
   Transaction,
+  Trade,
 } from "./types";
 import { baseSymbol, preferredSymbol } from "./stocks";
+import { isTradeable, withDerivedPosition } from "./trades";
 
 function makeId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 /**
+ * Backfills a single opening BUY for holdings saved before trades existed, so
+ * every position has a transaction history to show.
+ */
+function ensureTrades(holdings: Holding[]): Holding[] {
+  return holdings.map((h) => {
+    if (!isTradeable(h) || (h.trades && h.trades.length > 0)) return h;
+    const quantity = h.category === "MUTUAL_FUND" ? h.units : h.quantity;
+    const price = h.category === "MUTUAL_FUND" ? h.avgNav : h.avgPrice;
+    const openingTrade: Trade = {
+      id: makeId(),
+      type: "BUY",
+      quantity,
+      price,
+      date: (h.createdAt ?? new Date().toISOString()).slice(0, 10),
+      note: "Opening balance",
+      createdAt: h.createdAt ?? new Date().toISOString(),
+    };
+    return { ...h, trades: [openingTrade] };
+  });
+}
+
+/**
  * Merges holdings that represent the same position (e.g. added twice before
  * the add-flow started merging automatically, or the same stock bought via
- * both its NSE and BSE listing) into a single row with a quantity-weighted
- * average price, keeping the earliest holding's id.
+ * both its NSE and BSE listing) into a single row, combining their trade
+ * histories and re-deriving the position from them.
  */
 function dedupeHoldings(holdings: Holding[]): Holding[] {
   const merged: Holding[] = [];
@@ -45,29 +69,17 @@ function dedupeHoldings(holdings: Holding[]): Holding[] {
     }
 
     const existing = merged[existingIndex];
-    if (h.category === "MUTUAL_FUND" && existing.category === "MUTUAL_FUND") {
-      const units = existing.units + h.units;
-      merged[existingIndex] = {
-        ...existing,
-        units,
-        avgNav: (existing.units * existing.avgNav + h.units * h.avgNav) / units,
-        currentNav: h.currentNav ?? existing.currentNav,
-        lastFetched: h.lastFetched ?? existing.lastFetched,
-      };
-    } else if (
-      (h.category === "IN_STOCK" || h.category === "US_STOCK") &&
-      h.category === existing.category
-    ) {
-      const quantity = existing.quantity + h.quantity;
-      merged[existingIndex] = {
-        ...existing,
-        symbol: preferredSymbol(existing.symbol, h.symbol),
-        quantity,
-        avgPrice: (existing.quantity * existing.avgPrice + h.quantity * h.avgPrice) / quantity,
-        currentPrice: h.currentPrice ?? existing.currentPrice,
-        lastFetched: h.lastFetched ?? existing.lastFetched,
-      };
+    if (!isTradeable(existing) || !isTradeable(h) || existing.category !== h.category) continue;
+
+    const combined = { ...existing, trades: [...existing.trades, ...h.trades] };
+    if (combined.category !== "MUTUAL_FUND" && h.category !== "MUTUAL_FUND") {
+      combined.symbol = preferredSymbol(combined.symbol, h.symbol);
+      combined.currentPrice = h.currentPrice ?? combined.currentPrice;
+    } else if (combined.category === "MUTUAL_FUND" && h.category === "MUTUAL_FUND") {
+      combined.currentNav = h.currentNav ?? combined.currentNav;
     }
+    combined.lastFetched = h.lastFetched ?? combined.lastFetched;
+    merged[existingIndex] = withDerivedPosition(combined);
   }
 
   return merged;
@@ -79,6 +91,18 @@ export const DEFAULT_TARGET_ALLOCATION: AllocationTarget = {
   REAL_ESTATE: 10,
   COMMODITIES: 5,
   CASH: 5,
+};
+
+/**
+ * `Omit` on a union collapses it to the shared keys, which would drop
+ * category-specific fields like `symbol` and `schemeCode`. Distributing over
+ * the union preserves each member's own shape.
+ */
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+/** A holding as callers supply it: no id/timestamps, and trades without ids. */
+export type NewHolding = DistributiveOmit<Holding, "id" | "createdAt" | "updatedAt" | "trades"> & {
+  trades?: Omit<Trade, "id" | "createdAt">[];
 };
 
 export interface BackupData {
@@ -99,9 +123,13 @@ interface FinanceState {
   fxRate: FxRate | null;
   hydrated: boolean;
 
-  addHolding: (h: Omit<Holding, "id" | "createdAt" | "updatedAt">) => void;
+  addHolding: (h: NewHolding) => void;
   updateHolding: (id: string, patch: Partial<Holding>) => void;
   deleteHolding: (id: string) => void;
+
+  addTrade: (holdingId: string, trade: Omit<Trade, "id" | "createdAt">) => void;
+  updateTrade: (holdingId: string, tradeId: string, patch: Partial<Trade>) => void;
+  deleteTrade: (holdingId: string, tradeId: string) => void;
 
   addLiability: (l: Omit<Liability, "id" | "createdAt" | "updatedAt">) => void;
   updateLiability: (id: string, patch: Partial<Liability>) => void;
@@ -134,7 +162,11 @@ export const useFinanceStore = create<FinanceState>()(
       addHolding: (h) =>
         set((state) => {
           const now = new Date().toISOString();
-          const holding = { ...h, id: makeId(), createdAt: now, updatedAt: now } as Holding;
+          // Callers pass trades without ids; they're minted here so no caller
+          // needs to know how ids are generated.
+          const trades: Trade[] = (h.trades ?? []).map((t) => ({ ...t, id: makeId(), createdAt: now }));
+          let holding = { ...h, trades, id: makeId(), createdAt: now, updatedAt: now } as Holding;
+          if (isTradeable(holding)) holding = withDerivedPosition(holding);
           return { holdings: [...state.holdings, holding] };
         }),
       updateHolding: (id, patch) =>
@@ -147,6 +179,40 @@ export const useFinanceStore = create<FinanceState>()(
         })),
       deleteHolding: (id) =>
         set((state) => ({ holdings: state.holdings.filter((h) => h.id !== id) })),
+
+      addTrade: (holdingId, trade) =>
+        set((state) => ({
+          holdings: state.holdings.map((h) => {
+            if (h.id !== holdingId || !isTradeable(h)) return h;
+            const next: Trade = { ...trade, id: makeId(), createdAt: new Date().toISOString() };
+            return withDerivedPosition({
+              ...h,
+              trades: [...h.trades, next],
+              updatedAt: new Date().toISOString(),
+            });
+          }),
+        })),
+      updateTrade: (holdingId, tradeId, patch) =>
+        set((state) => ({
+          holdings: state.holdings.map((h) => {
+            if (h.id !== holdingId || !isTradeable(h)) return h;
+            return withDerivedPosition({
+              ...h,
+              trades: h.trades.map((t) => (t.id === tradeId ? { ...t, ...patch } : t)),
+              updatedAt: new Date().toISOString(),
+            });
+          }),
+        })),
+      deleteTrade: (holdingId, tradeId) =>
+        set((state) => ({
+          holdings: state.holdings.flatMap((h) => {
+            if (h.id !== holdingId || !isTradeable(h)) return [h];
+            const trades = h.trades.filter((t) => t.id !== tradeId);
+            // Removing the last transaction removes the position entirely.
+            if (trades.length === 0) return [];
+            return [withDerivedPosition({ ...h, trades, updatedAt: new Date().toISOString() })];
+          }),
+        })),
 
       addLiability: (l) =>
         set((state) => {
@@ -198,7 +264,7 @@ export const useFinanceStore = create<FinanceState>()(
       setFxRate: (rate) => set({ fxRate: rate }),
       restoreBackup: (data) =>
         set({
-          holdings: data.holdings ?? [],
+          holdings: dedupeHoldings(ensureTrades(data.holdings ?? [])),
           liabilities: data.liabilities ?? [],
           transactions: data.transactions ?? [],
           snapshots: data.snapshots ?? [],
@@ -236,7 +302,7 @@ export const useFinanceStore = create<FinanceState>()(
 // spinner forever.
 if (typeof window !== "undefined") {
   Promise.resolve(useFinanceStore.persist.rehydrate()).finally(() => {
-    const deduped = dedupeHoldings(useFinanceStore.getState().holdings);
-    useFinanceStore.setState({ holdings: deduped, hydrated: true });
+    const migrated = dedupeHoldings(ensureTrades(useFinanceStore.getState().holdings));
+    useFinanceStore.setState({ holdings: migrated, hydrated: true });
   });
 }

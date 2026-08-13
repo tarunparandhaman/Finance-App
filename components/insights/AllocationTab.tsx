@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { Pencil, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useFinanceStore } from "@/lib/store";
 import { formatINR } from "@/lib/format";
-import { ALLOCATION_BUCKETS, ALLOCATION_BUCKET_LABELS, ALLOCATION_BUCKET_COLORS, rebalanceAnalysis, targetSum } from "@/lib/allocation";
+import { ALLOCATION_BUCKETS, ALLOCATION_BUCKET_LABELS, rebalanceAnalysis, targetSum } from "@/lib/allocation";
+import { useChartTheme } from "@/lib/chartTheme";
 import type { AllocationTarget } from "@/lib/types";
 
 export default function AllocationTab() {
@@ -12,6 +13,7 @@ export default function AllocationTab() {
   const fxRate = useFinanceStore((s) => s.fxRate);
   const targetAllocation = useFinanceStore((s) => s.targetAllocation);
   const setTargetAllocation = useFinanceStore((s) => s.setTargetAllocation);
+  const { bucketColors } = useChartTheme();
   const usdInr = fxRate?.usdInr ?? 87;
 
   const [editing, setEditing] = useState(false);
@@ -36,7 +38,7 @@ export default function AllocationTab() {
 
   if (totalInr === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted">
+      <div className="card border-dashed p-8 text-center text-sm text-muted">
         Add some investments in the Invest or Save tabs to see your allocation.
       </div>
     );
@@ -92,7 +94,7 @@ export default function AllocationTab() {
             {ALLOCATION_BUCKETS.map((b) => (
               <div
                 key={b}
-                style={{ width: `${targetAllocation[b]}%`, backgroundColor: ALLOCATION_BUCKET_COLORS[b] }}
+                style={{ width: `${targetAllocation[b]}%`, backgroundColor: bucketColors[b] }}
               />
             ))}
           </div>
@@ -101,7 +103,7 @@ export default function AllocationTab() {
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
             {ALLOCATION_BUCKETS.map((b) => (
               <span key={b} className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ALLOCATION_BUCKET_COLORS[b] }} />
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: bucketColors[b] }} />
                 {ALLOCATION_BUCKET_LABELS[b]} {targetAllocation[b]}%
               </span>
             ))}
@@ -129,7 +131,7 @@ export default function AllocationTab() {
             <div key={r.bucket}>
               <div className="mb-1 flex items-center justify-between text-sm">
                 <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ALLOCATION_BUCKET_COLORS[r.bucket] }} />
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: bucketColors[r.bucket] }} />
                   {ALLOCATION_BUCKET_LABELS[r.bucket]}
                 </span>
                 <span className="text-muted">
@@ -139,7 +141,7 @@ export default function AllocationTab() {
               <div className="relative h-1.5 overflow-hidden rounded-full bg-background">
                 <div
                   className="h-full rounded-full"
-                  style={{ width: `${Math.min(100, r.currentPercent)}%`, backgroundColor: ALLOCATION_BUCKET_COLORS[r.bucket] }}
+                  style={{ width: `${Math.min(100, r.currentPercent)}%`, backgroundColor: bucketColors[r.bucket] }}
                 />
                 <div className="absolute top-0 h-full w-px bg-foreground/40" style={{ left: `${Math.min(100, r.targetPercent)}%` }} />
               </div>

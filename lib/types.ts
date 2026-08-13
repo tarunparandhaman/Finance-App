@@ -17,11 +17,27 @@ interface BaseHolding {
   updatedAt: string;
 }
 
+/** An individual buy or sell of a stock or mutual fund. */
+export interface Trade {
+  id: string;
+  type: "BUY" | "SELL";
+  /** Shares for stocks, units for mutual funds. */
+  quantity: number;
+  /** Per share/unit, in the holding's own currency. */
+  price: number;
+  date: string; // YYYY-MM-DD
+  note?: string;
+  createdAt: string;
+}
+
 export interface StockHolding extends BaseHolding {
   category: "IN_STOCK" | "US_STOCK";
   symbol: string; // e.g. RELIANCE.NS or AAPL
+  /** Derived from `trades` — never edit directly, use the store's trade actions. */
   quantity: number;
+  /** Derived from `trades` (average cost method). */
   avgPrice: number;
+  trades: Trade[];
   currentPrice?: number;
   currency: "INR" | "USD";
   lastFetched?: string;
@@ -31,8 +47,11 @@ export interface MutualFundHolding extends BaseHolding {
   category: "MUTUAL_FUND";
   schemeCode: string;
   schemeName: string;
+  /** Derived from `trades`. */
   units: number;
+  /** Derived from `trades` (average cost method). */
   avgNav: number;
+  trades: Trade[];
   currentNav?: number;
   lastFetched?: string;
 }

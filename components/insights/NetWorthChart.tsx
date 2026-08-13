@@ -1,10 +1,12 @@
 "use client";
 
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { formatINR } from "@/lib/format";
+import { useChartTheme } from "@/lib/chartTheme";
 import type { NetWorthSnapshot } from "@/lib/types";
 
 export default function NetWorthChart({ snapshots }: { snapshots: NetWorthSnapshot[] }) {
+  const t = useChartTheme();
   const data = [...snapshots]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((s) => ({ date: s.date, netWorth: s.netWorthInr }));
@@ -12,21 +14,37 @@ export default function NetWorthChart({ snapshots }: { snapshots: NetWorthSnapsh
   return (
     <div className="h-56 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+        <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id="netWorthFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={t.investment} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={t.investment} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke={t.grid} vertical={false} />
+          <XAxis dataKey="date" tick={{ fontSize: 10, fill: t.axis }} axisLine={false} tickLine={false} />
           <YAxis
-            tick={{ fontSize: 10 }}
+            tick={{ fontSize: 10, fill: t.axis }}
             axisLine={false}
             tickLine={false}
-            width={36}
-            tickFormatter={(v) => (v >= 100000 ? `${(v / 100000).toFixed(0)}L` : `${Math.round(v / 1000)}K`)}
+            width={40}
+            tickFormatter={(v) => (Math.abs(v) >= 100000 ? `${(v / 100000).toFixed(1)}L` : `${Math.round(v / 1000)}K`)}
           />
           <Tooltip
-            formatter={(value) => formatINR(Number(value))}
-            contentStyle={{ borderRadius: 8, border: "1px solid var(--border)", fontSize: 12 }}
+            formatter={(value) => [formatINR(Number(value)), "Net worth"]}
+            contentStyle={t.tooltip}
+            itemStyle={{ color: t.tooltip.color }}
           />
-          <Line type="monotone" dataKey="netWorth" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
-        </LineChart>
+          <Area
+            type="monotone"
+            dataKey="netWorth"
+            stroke={t.investment}
+            strokeWidth={2.5}
+            fill="url(#netWorthFill)"
+            dot={{ r: 3, fill: t.investment, strokeWidth: 0 }}
+            activeDot={{ r: 5 }}
+          />
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   );

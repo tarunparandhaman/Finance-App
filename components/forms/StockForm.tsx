@@ -8,40 +8,40 @@ import { refreshAllPrices } from "@/lib/pricing";
 import { formatNumber } from "@/lib/format";
 import type { StockHolding } from "@/lib/types";
 import { baseSymbol, preferredSymbol } from "@/lib/stocks";
-import { Trash2, Info } from "lucide-react";
+import { Info } from "lucide-react";
 
 export default function StockForm({
   category,
-  existing,
   onDone,
 }: {
   category: "IN_STOCK" | "US_STOCK";
-  existing?: StockHolding;
   onDone: () => void;
 }) {
   const holdings = useFinanceStore((s) => s.holdings);
   const addHolding = useFinanceStore((s) => s.addHolding);
   const updateHolding = useFinanceStore((s) => s.updateHolding);
-  const deleteHolding = useFinanceStore((s) => s.deleteHolding);
+  const addTrade = useFinanceStore((s) => s.addTrade);
 
-  const [symbol, setSymbol] = useState(existing?.symbol ?? "");
-  const [name, setName] = useState(existing?.name ?? "");
-  const [quantity, setQuantity] = useState(existing?.quantity?.toString() ?? "");
-  const [avgPrice, setAvgPrice] = useState(existing?.avgPrice?.toString() ?? "");
-  const [notes, setNotes] = useState(existing?.notes ?? "");
+  const [symbol, setSymbol] = useState("");
+  const [name, setName] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [price, setPrice] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState("");
   const currency = category === "US_STOCK" ? "USD" : "INR";
+  const symbolPrefix = currency === "USD" ? "$" : "₹";
 
-  // If adding (not editing) and this symbol is already held, saving will top
-  // up that position instead of creating a duplicate row.
+  // If this symbol is already held, the buy is recorded against that position
+  // rather than creating a duplicate row.
   const existingMatch = useMemo(() => {
-    if (existing || !symbol) return undefined;
+    if (!symbol) return undefined;
     return holdings.find(
       (h): h is StockHolding =>
         (h.category === "IN_STOCK" || h.category === "US_STOCK") &&
         h.category === category &&
         baseSymbol(h.symbol) === baseSymbol(symbol)
     );
-  }, [existing, symbol, category, holdings]);
+  }, [symbol, category, holdings]);
 
   async function search(query: string): Promise<AutocompleteOption[]> {
     const res = await fetch(`/api/stock-search?q=${encodeURIComponent(query)}`);
@@ -53,8 +53,8 @@ export default function StockForm({
         : !r.symbol.includes(".")
     );
     // The same Indian company often appears twice (NSE + BSE listing) — keep
-    // one row per company, preferring the NSE listing, so people can't
-    // accidentally pick two different symbols for what they consider one stock.
+    // one row per company, preferring NSE, so the same stock can't be added
+    // under two different symbols.
     const byCompany = new Map<string, { symbol: string; name: string; exchange?: string }>();
     for (const r of filtered) {
       const dedupeKey = category === "IN_STOCK" ? baseSymbol(r.symbol) : r.symbol;
@@ -68,38 +68,32 @@ export default function StockForm({
     }));
   }
 
-  function handleSelect(opt: AutocompleteOption) {
-    setSymbol(opt.key);
-    setName(opt.label);
-  }
-
-  const valid = symbol.trim() && name.trim() && Number(quantity) > 0 && Number(avgPrice) >= 0;
+  const valid = symbol.trim() && name.trim() && Number(quantity) > 0 && Number(price) >= 0 && date;
 
   function handleSave() {
-    const enteredQty = Number(quantity);
-    const enteredAvgPrice = Number(avgPrice);
-    const payload = {
-      category,
-      symbol: symbol.trim(),
-      name: name.trim(),
-      quantity: enteredQty,
-      avgPrice: enteredAvgPrice,
-      currency: currency as "INR" | "USD",
-      notes: notes.trim() || undefined,
+    const trade = {
+      type: "BUY" as const,
+      quantity: Number(quantity),
+      price: Number(price),
+      date,
+      note: note.trim() || undefined,
     };
 
-    if (existing) {
-      updateHolding(existing.id, payload);
-    } else if (existingMatch) {
-      const newQty = existingMatch.quantity + enteredQty;
-      const newAvgPrice = (existingMatch.quantity * existingMatch.avgPrice + enteredQty * enteredAvgPrice) / newQty;
+    if (existingMatch) {
       updateHolding(existingMatch.id, {
-        quantity: newQty,
-        avgPrice: newAvgPrice,
         symbol: preferredSymbol(existingMatch.symbol, symbol.trim()),
       });
+      addTrade(existingMatch.id, trade);
     } else {
-      addHolding(payload);
+      addHolding({
+        category,
+        symbol: symbol.trim(),
+        name: name.trim(),
+        quantity: trade.quantity,
+        avgPrice: trade.price,
+        currency: currency as "INR" | "USD",
+        trades: [trade],
+      });
     }
     refreshAllPrices().catch(() => {});
     onDone();
@@ -107,37 +101,35 @@ export default function StockForm({
 
   return (
     <div className="space-y-4">
-      {!existing && (
-        <Field label="Search symbol or company">
-          <Autocomplete
-            placeholder={category === "IN_STOCK" ? "e.g. Reliance, TCS, Infosys" : "e.g. Apple, Microsoft"}
-            onSearch={search}
-            onSelect={handleSelect}
-          />
-        </Field>
-      )}
+      <Field label="Search symbol or company">
+        <Autocomplete
+          placeholder={category === "IN_STOCK" ? "e.g. Reliance, TCS, Infosys" : "e.g. Apple, Microsoft"}
+          onSearch={search}
+          onSelect={(opt) => {
+            setSymbol(opt.key);
+            setName(opt.label);
+          }}
+        />
+      </Field>
+
       {symbol && (
-        <div className="rounded-lg bg-background px-3 py-2 text-sm">
+        <div className="rounded-lg bg-surface-alt px-3 py-2 text-sm">
           <span className="font-medium">{symbol}</span>
           <span className="text-muted"> · {name}</span>
         </div>
       )}
+
       {existingMatch && (
         <div className="flex items-start gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs text-primary">
           <Info size={14} className="mt-0.5 shrink-0" />
           <span>
-            You already hold {formatNumber(existingMatch.quantity, 4)} shares at an average of{" "}
-            {currency === "USD" ? "$" : "₹"}
-            {formatNumber(existingMatch.avgPrice)}. This will be added to that position and your average price
-            recalculated — not a separate row.
+            You already hold {formatNumber(existingMatch.quantity, 4)} shares at an average of {symbolPrefix}
+            {formatNumber(existingMatch.avgPrice)}. This buy gets added to that position and shows up in its
+            transaction history.
           </span>
         </div>
       )}
-      {existing && (
-        <Field label="Name">
-          <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} />
-        </Field>
-      )}
+
       <div className="grid grid-cols-2 gap-3">
         <Field label="Quantity (shares)">
           <input
@@ -149,47 +141,43 @@ export default function StockForm({
             placeholder="0"
           />
         </Field>
-        <Field label={`Avg buy price (${currency === "USD" ? "$" : "₹"})`}>
+        <Field label={`Buy price (${symbolPrefix})`}>
           <input
             className={inputClass}
             type="number"
             inputMode="decimal"
-            value={avgPrice}
-            onChange={(e) => setAvgPrice(e.target.value)}
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
             placeholder="0.00"
           />
         </Field>
       </div>
-      <Field label="Notes (optional)">
-        <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
+
+      <Field label="Purchase date">
+        <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
+
+      <Field label="Note (optional)">
+        <input
+          className={inputClass}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="e.g. SIP instalment, bonus allotment"
+        />
+      </Field>
+
       <p className="text-xs text-muted">
-        Current price updates automatically. Quantity &amp; buy price are yours to enter — no public source knows
-        what you personally paid.
+        The current market price updates automatically. Quantity and buy price are yours to enter — no public
+        source knows what you personally paid.
       </p>
 
-      <div className="flex gap-2 pt-2">
-        {existing && (
-          <button
-            onClick={() => {
-              if (confirm(`Delete ${existing.name}?`)) {
-                deleteHolding(existing.id);
-                onDone();
-              }
-            }}
-            className="flex items-center justify-center rounded-lg border border-negative/30 px-4 py-2.5 text-negative"
-          >
-            <Trash2 size={18} />
-          </button>
-        )}
-        <button
-          disabled={!valid}
-          onClick={handleSave}
-          className="flex-1 rounded-lg bg-primary py-2.5 font-medium text-white disabled:opacity-40"
-        >
-          {existing ? "Save changes" : existingMatch ? "Add to position" : "Add holding"}
-        </button>
-      </div>
+      <button
+        disabled={!valid}
+        onClick={handleSave}
+        className="w-full rounded-xl bg-primary py-3 font-medium text-white disabled:opacity-40"
+      >
+        {existingMatch ? "Add buy transaction" : "Add holding"}
+      </button>
     </div>
   );
 }

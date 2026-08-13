@@ -9,7 +9,8 @@ import RefreshButton from "@/components/RefreshButton";
 import CategoryIcon, { LiabilityIcon } from "@/components/CategoryIcon";
 import { useFinanceStore } from "@/lib/store";
 import { refreshAllPrices, isPriceable } from "@/lib/pricing";
-import { CATEGORY_COLORS, CATEGORY_LABELS, valueHolding, totalLiabilities } from "@/lib/valuation";
+import { CATEGORY_LABELS, valueHolding, totalLiabilities } from "@/lib/valuation";
+import { useChartTheme } from "@/lib/chartTheme";
 import { formatINR, formatPercent, timeAgo } from "@/lib/format";
 import { currentMonthKey, transactionsInMonth, summarizeMonth } from "@/lib/cashflow";
 import type { AssetCategory } from "@/lib/types";
@@ -23,12 +24,15 @@ const CATEGORY_ROUTE: Record<AssetCategory, { href: string; tab: string }> = {
   OTHER: { href: "/save", tab: "OTHER" },
 };
 
+const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS) as AssetCategory[];
+
 export default function DashboardPage() {
   const holdings = useFinanceStore((s) => s.holdings);
   const liabilities = useFinanceStore((s) => s.liabilities);
   const transactions = useFinanceStore((s) => s.transactions);
   const snapshots = useFinanceStore((s) => s.snapshots);
   const fxRate = useFinanceStore((s) => s.fxRate);
+  const { categoryColors } = useChartTheme();
   const autoRefreshedRef = useRef(false);
 
   useEffect(() => {
@@ -40,30 +44,34 @@ export default function DashboardPage() {
 
   const usdInr = fxRate?.usdInr ?? 87;
 
-  const { assetsTotal, byCategory, lastUpdated } = useMemo(() => {
+  const { assetsTotal, investedTotal, byCategory, lastUpdated } = useMemo(() => {
     let assetsTotal = 0;
+    let investedTotal = 0;
     const byCategory: Record<string, number> = {};
     let lastUpdated: string | undefined;
     for (const h of holdings) {
       const v = valueHolding(h, usdInr);
       assetsTotal += v.currentValueInr;
+      investedTotal += v.costValueInr;
       byCategory[h.category] = (byCategory[h.category] ?? 0) + v.currentValueInr;
       const fetched = "lastFetched" in h ? h.lastFetched : undefined;
       if (fetched && (!lastUpdated || fetched > lastUpdated)) lastUpdated = fetched;
     }
-    return { assetsTotal, byCategory, lastUpdated };
+    return { assetsTotal, investedTotal, byCategory, lastUpdated };
   }, [holdings, usdInr]);
 
   const liabilitiesTotal = useMemo(() => totalLiabilities(liabilities, usdInr), [liabilities, usdInr]);
   const netWorth = assetsTotal - liabilitiesTotal;
+  const totalGain = assetsTotal - investedTotal;
+  const totalGainPercent = investedTotal > 0 ? (totalGain / investedTotal) * 100 : 0;
 
   const trend = useMemo(() => {
     if (snapshots.length === 0) return null;
     const sorted = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
     const latest = sorted[sorted.length - 1];
-    const changeVsLatestSnapshot = netWorth - latest.netWorthInr;
-    const changePercent = latest.netWorthInr !== 0 ? (changeVsLatestSnapshot / Math.abs(latest.netWorthInr)) * 100 : 0;
-    return { changeVsLatestSnapshot, changePercent, since: latest.date };
+    const change = netWorth - latest.netWorthInr;
+    const percent = latest.netWorthInr !== 0 ? (change / Math.abs(latest.netWorthInr)) * 100 : 0;
+    return { change, percent };
   }, [snapshots, netWorth]);
 
   const monthSummary = useMemo(
@@ -71,16 +79,13 @@ export default function DashboardPage() {
     [transactions]
   );
 
-  const chartData = (Object.keys(CATEGORY_LABELS) as AssetCategory[]).map((cat) => ({
+  const chartData = ALL_CATEGORIES.map((cat) => ({
     name: CATEGORY_LABELS[cat],
     value: byCategory[cat] ?? 0,
-    color: CATEGORY_COLORS[cat],
+    color: categoryColors[cat],
   }));
 
-  const categoriesWithHoldings = (Object.keys(CATEGORY_LABELS) as AssetCategory[]).filter(
-    (cat) => (byCategory[cat] ?? 0) > 0
-  );
-
+  const categoriesWithHoldings = ALL_CATEGORIES.filter((cat) => (byCategory[cat] ?? 0) > 0);
   const isEmpty = holdings.length === 0 && liabilities.length === 0;
 
   return (
@@ -89,27 +94,37 @@ export default function DashboardPage() {
         <div className="hero-card p-5">
           <div className="text-sm text-white/75">Net worth</div>
           <div className="mt-1 text-4xl font-bold tracking-tight tabular-nums">{formatINR(netWorth)}</div>
-          <div className="mt-2 flex items-center gap-2 text-xs text-white/75">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/75">
             {trend && (
               <span
-                className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 font-medium ${
-                  trend.changeVsLatestSnapshot >= 0 ? "bg-white/20" : "bg-black/20"
+                className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 font-medium text-white ${
+                  trend.change >= 0 ? "bg-white/20" : "bg-black/25"
                 }`}
               >
-                {trend.changeVsLatestSnapshot >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                {formatPercent(trend.changePercent)}
+                {trend.change >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                {formatPercent(trend.percent)} since last snapshot
               </span>
             )}
             <span>{lastUpdated ? `Prices updated ${timeAgo(lastUpdated)}` : "Add a holding to get started"}</span>
           </div>
-          {liabilitiesTotal > 0 && (
-            <div className="mt-4 flex gap-5 border-t border-white/20 pt-3 text-xs">
-              <span className="text-white/75">
-                Assets <span className="font-semibold text-white">{formatINR(assetsTotal)}</span>
-              </span>
-              <span className="text-white/75">
-                Debts <span className="font-semibold text-white">{formatINR(liabilitiesTotal)}</span>
-              </span>
+
+          {(investedTotal > 0 || liabilitiesTotal > 0) && (
+            <div className="mt-4 grid grid-cols-3 gap-3 border-t border-white/20 pt-3 text-xs">
+              <div>
+                <div className="text-white/70">Invested</div>
+                <div className="font-semibold tabular-nums">{formatINR(investedTotal)}</div>
+              </div>
+              <div>
+                <div className="text-white/70">Returns</div>
+                <div className="font-semibold tabular-nums">
+                  {totalGain >= 0 ? "+" : ""}
+                  {formatPercent(totalGainPercent)}
+                </div>
+              </div>
+              <div>
+                <div className="text-white/70">Debts</div>
+                <div className="font-semibold tabular-nums">{formatINR(liabilitiesTotal)}</div>
+              </div>
             </div>
           )}
         </div>
@@ -131,19 +146,19 @@ export default function DashboardPage() {
         ) : (
           <>
             <div className="grid grid-cols-3 gap-2">
-              <Link href="/insights?tab=CASHFLOW" className="card p-3 text-center transition-shadow active:shadow-none">
+              <Link href="/insights?tab=CASHFLOW" className="card p-3 text-center active:shadow-none">
                 <PieChart size={16} className="mx-auto mb-1 text-primary" />
                 <div className="text-xs text-muted">This month</div>
                 <div className="text-sm font-semibold tabular-nums">{formatPercent(monthSummary.savingsRate)}</div>
                 <div className="text-[10px] text-muted">saved</div>
               </Link>
-              <Link href="/insights?tab=ALLOCATION" className="card p-3 text-center transition-shadow active:shadow-none">
+              <Link href="/insights?tab=ALLOCATION" className="card p-3 text-center active:shadow-none">
                 <Scale size={16} className="mx-auto mb-1 text-primary" />
                 <div className="text-xs text-muted">Allocation</div>
                 <div className="text-sm font-semibold">Rebalance</div>
                 <div className="text-[10px] text-muted">check fit</div>
               </Link>
-              <Link href="/insights?tab=HISTORY" className="card p-3 text-center transition-shadow active:shadow-none">
+              <Link href="/insights?tab=HISTORY" className="card p-3 text-center active:shadow-none">
                 <LineChartIcon size={16} className="mx-auto mb-1 text-primary" />
                 <div className="text-xs text-muted">History</div>
                 <div className="text-sm font-semibold">Snapshot</div>
@@ -153,7 +168,8 @@ export default function DashboardPage() {
 
             {chartData.some((c) => c.value > 0) && (
               <div className="card p-4">
-                <DonutChart data={chartData} />
+                <h2 className="mb-1 text-sm font-semibold">Where your money is</h2>
+                <DonutChart data={chartData} total={assetsTotal} />
               </div>
             )}
 
@@ -170,14 +186,22 @@ export default function DashboardPage() {
                       href={`${route.href}?tab=${route.tab}`}
                       className="card flex items-center justify-between px-4 py-3 active:shadow-none"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         <CategoryIcon category={cat} size={16} />
-                        <span className="text-sm font-medium">{CATEGORY_LABELS[cat]}</span>
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium">{CATEGORY_LABELS[cat]}</div>
+                          <div className="mt-1 h-1 w-20 overflow-hidden rounded-full bg-surface-alt">
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width: `${pct}%`, backgroundColor: categoryColors[cat] }}
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex shrink-0 items-center gap-2">
                         <div className="text-right">
                           <div className="text-sm font-semibold tabular-nums">{formatINR(value)}</div>
-                          <div className="text-xs text-muted">{pct.toFixed(1)}%</div>
+                          <div className="text-xs text-muted tabular-nums">{pct.toFixed(1)}%</div>
                         </div>
                         <ChevronRight size={16} className="text-muted" />
                       </div>

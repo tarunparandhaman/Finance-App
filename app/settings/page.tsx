@@ -1,12 +1,20 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Download, Upload, Trash2, ShieldCheck } from "lucide-react";
+import { Download, Upload, Trash2, ShieldCheck, Sun, Moon, Monitor } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import { useFinanceStore } from "@/lib/store";
+import { useTheme, type ThemePreference } from "@/lib/theme";
 import type { BackupData } from "@/lib/store";
 
+const THEME_OPTIONS: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "System", icon: Monitor },
+];
+
 export default function SettingsPage() {
+  const { preference, setPreference } = useTheme();
   const holdings = useFinanceStore((s) => s.holdings);
   const liabilities = useFinanceStore((s) => s.liabilities);
   const transactions = useFinanceStore((s) => s.transactions);
@@ -93,6 +101,29 @@ export default function SettingsPage() {
         {message && (
           <div className="rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary">{message}</div>
         )}
+
+        <div className="space-y-2">
+          <h2 className="px-1 text-sm font-medium text-muted">Appearance</h2>
+          <div className="card p-3">
+            <div className="flex gap-1 rounded-xl border border-border bg-background p-1">
+              {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  onClick={() => setPreference(value)}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-sm font-medium transition-all ${
+                    preference === value ? "bg-surface text-primary shadow-sm" : "text-muted"
+                  }`}
+                >
+                  <Icon size={15} />
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 px-1 text-xs text-muted">
+              &ldquo;System&rdquo; follows your phone or computer&apos;s light/dark setting automatically.
+            </p>
+          </div>
+        </div>
 
         <div className="space-y-2">
           <h2 className="px-1 text-sm font-medium text-muted">Backup</h2>
