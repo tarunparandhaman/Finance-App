@@ -62,3 +62,62 @@ export interface FxRate {
   usdInr: number;
   updatedAt: string;
 }
+
+export type LiabilityType = "HOME_LOAN" | "VEHICLE_LOAN" | "PERSONAL_LOAN" | "CREDIT_CARD" | "OTHER";
+
+export interface Liability {
+  id: string;
+  type: LiabilityType;
+  name: string;
+  currentBalance: number;
+  currency: "INR" | "USD";
+  interestRate?: number;
+  asOfDate: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NetWorthSnapshot {
+  id: string;
+  date: string; // YYYY-MM-DD
+  assetsInr: number;
+  liabilitiesInr: number;
+  netWorthInr: number;
+  note?: string;
+  createdAt: string;
+}
+
+export type AllocationBucket = "EQUITY" | "DEBT" | "REAL_ESTATE" | "COMMODITIES" | "CASH";
+
+export type AllocationTarget = Record<AllocationBucket, number>;
+
+export type TransactionType = "INCOME" | "EXPENSE" | "INVESTMENT";
+
+export const EXPENSE_CATEGORIES = [
+  "Groceries",
+  "Food & Dining",
+  "Shopping",
+  "Transport",
+  "Utilities",
+  "Entertainment",
+  "Health",
+  "Rent",
+  "Other",
+] as const;
+
+export const INCOME_CATEGORIES = ["Salary", "Business", "Freelance", "Dividend", "Interest", "Other"] as const;
+
+export const INVESTMENT_CATEGORY = "Investment";
+
+export interface Transaction {
+  id: string;
+  type: TransactionType;
+  amount: number;
+  category: string;
+  date: string; // YYYY-MM-DD
+  note?: string;
+  recurring?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

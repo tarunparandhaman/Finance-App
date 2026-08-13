@@ -1,4 +1,4 @@
-import type { Holding } from "./types";
+import type { Holding, Liability } from "./types";
 
 export interface Valuation {
   currentValueInr: number;
@@ -58,9 +58,25 @@ export function valueHolding(h: Holding, usdInr: number): Valuation {
   }
 }
 
-export function totalNetWorth(holdings: Holding[], usdInr: number): number {
+export function totalAssets(holdings: Holding[], usdInr: number): number {
   return holdings.reduce((sum, h) => sum + valueHolding(h, usdInr).currentValueInr, 0);
 }
+
+export function valueLiability(l: Liability, usdInr: number): number {
+  return l.currentBalance * (l.currency === "USD" ? usdInr : 1);
+}
+
+export function totalLiabilities(liabilities: Liability[], usdInr: number): number {
+  return liabilities.reduce((sum, l) => sum + valueLiability(l, usdInr), 0);
+}
+
+export const LIABILITY_TYPE_LABELS: Record<Liability["type"], string> = {
+  HOME_LOAN: "Home Loan",
+  VEHICLE_LOAN: "Vehicle Loan",
+  PERSONAL_LOAN: "Personal Loan",
+  CREDIT_CARD: "Credit Card",
+  OTHER: "Other",
+};
 
 export const CATEGORY_LABELS: Record<Holding["category"], string> = {
   IN_STOCK: "Indian Stocks",

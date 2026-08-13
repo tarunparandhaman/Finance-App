@@ -7,19 +7,22 @@ import PageShell from "@/components/PageShell";
 import SegmentedControl from "@/components/SegmentedControl";
 import Sheet from "@/components/Sheet";
 import HoldingCard from "@/components/HoldingCard";
+import LiabilityCard from "@/components/LiabilityCard";
 import RetirementForm from "@/components/forms/RetirementForm";
 import OtherForm from "@/components/forms/OtherForm";
+import LiabilityForm from "@/components/forms/LiabilityForm";
 import { useFinanceStore } from "@/lib/store";
-import { valueHolding } from "@/lib/valuation";
+import { valueHolding, valueLiability } from "@/lib/valuation";
 import { formatINR } from "@/lib/format";
-import type { Holding, RetirementHolding, OtherHolding } from "@/lib/types";
+import type { Holding, RetirementHolding, OtherHolding, Liability } from "@/lib/types";
 
-type SaveTab = "PF" | "NPS" | "OTHER";
+type SaveTab = "PF" | "NPS" | "OTHER" | "LIABILITY";
 
 const TAB_OPTIONS: { value: SaveTab; label: string }[] = [
   { value: "PF", label: "PF" },
   { value: "NPS", label: "NPS" },
   { value: "OTHER", label: "Other" },
+  { value: "LIABILITY", label: "Debts" },
 ];
 
 function SavePageInner() {
@@ -27,42 +30,65 @@ function SavePageInner() {
   const initialTab = (searchParams.get("tab") as SaveTab) || "PF";
   const [tab, setTab] = useState<SaveTab>(initialTab);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [editing, setEditing] = useState<Holding | null>(null);
+  const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
+  const [editingLiability, setEditingLiability] = useState<Liability | null>(null);
 
   const holdings = useFinanceStore((s) => s.holdings);
+  const liabilities = useFinanceStore((s) => s.liabilities);
   const fxRate = useFinanceStore((s) => s.fxRate);
   const usdInr = fxRate?.usdInr ?? 87;
 
-  const filtered = useMemo(() => holdings.filter((h) => h.category === tab), [holdings, tab]);
-
-  const subtotal = useMemo(
-    () => filtered.reduce((sum, h) => sum + valueHolding(h, usdInr).currentValueInr, 0),
-    [filtered, usdInr]
+  const filteredHoldings = useMemo(
+    () => (tab === "LIABILITY" ? [] : holdings.filter((h) => h.category === tab)),
+    [holdings, tab]
   );
 
+  const subtotal = useMemo(() => {
+    if (tab === "LIABILITY") return liabilities.reduce((sum, l) => sum + valueLiability(l, usdInr), 0);
+    return filteredHoldings.reduce((sum, h) => sum + valueHolding(h, usdInr).currentValueInr, 0);
+  }, [tab, filteredHoldings, liabilities, usdInr]);
+
   function openAdd() {
-    setEditing(null);
+    setEditingHolding(null);
+    setEditingLiability(null);
     setSheetOpen(true);
   }
 
-  function openEdit(h: Holding) {
-    setEditing(h);
+  function openEditHolding(h: Holding) {
+    setEditingHolding(h);
+    setEditingLiability(null);
     setSheetOpen(true);
   }
+
+  function openEditLiability(l: Liability) {
+    setEditingLiability(l);
+    setEditingHolding(null);
+    setSheetOpen(true);
+  }
+
+  const isEmpty = tab === "LIABILITY" ? liabilities.length === 0 : filteredHoldings.length === 0;
 
   return (
     <PageShell title="Save" subtitle={formatINR(subtotal)}>
       <div className="space-y-4">
         <SegmentedControl options={TAB_OPTIONS} value={tab} onChange={setTab} />
 
-        {filtered.length === 0 ? (
+        {isEmpty ? (
           <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted">
-            No {tab === "OTHER" ? "other assets" : tab} accounts added yet.
+            {tab === "LIABILITY"
+              ? "No loans or debts added yet."
+              : `No ${tab === "OTHER" ? "other assets" : tab} accounts added yet.`}
+          </div>
+        ) : tab === "LIABILITY" ? (
+          <div className="space-y-2">
+            {liabilities.map((l) => (
+              <LiabilityCard key={l.id} liability={l} onClick={() => openEditLiability(l)} />
+            ))}
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered.map((h) => (
-              <HoldingCard key={h.id} holding={h} onClick={() => openEdit(h)} />
+            {filteredHoldings.map((h) => (
+              <HoldingCard key={h.id} holding={h} onClick={() => openEditHolding(h)} />
             ))}
           </div>
         )}
@@ -83,14 +109,24 @@ function SavePageInner() {
       <Sheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        title={editing ? "Edit" : tab === "OTHER" ? "Add asset" : `Add ${tab} account`}
+        title={
+          editingHolding || editingLiability
+            ? "Edit"
+            : tab === "OTHER"
+              ? "Add asset"
+              : tab === "LIABILITY"
+                ? "Add loan / debt"
+                : `Add ${tab} account`
+        }
       >
-        {tab === "OTHER" ? (
-          <OtherForm existing={editing as OtherHolding | undefined} onDone={() => setSheetOpen(false)} />
+        {tab === "LIABILITY" ? (
+          <LiabilityForm existing={editingLiability ?? undefined} onDone={() => setSheetOpen(false)} />
+        ) : tab === "OTHER" ? (
+          <OtherForm existing={editingHolding as OtherHolding | undefined} onDone={() => setSheetOpen(false)} />
         ) : (
           <RetirementForm
             category={tab}
-            existing={editing as RetirementHolding | undefined}
+            existing={editingHolding as RetirementHolding | undefined}
             onDone={() => setSheetOpen(false)}
           />
         )}

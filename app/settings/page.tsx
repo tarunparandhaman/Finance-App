@@ -4,18 +4,32 @@ import { useRef, useState } from "react";
 import { Download, Upload, Trash2, ShieldCheck } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import { useFinanceStore } from "@/lib/store";
-import type { Holding } from "@/lib/types";
+import type { BackupData } from "@/lib/store";
 
 export default function SettingsPage() {
   const holdings = useFinanceStore((s) => s.holdings);
+  const liabilities = useFinanceStore((s) => s.liabilities);
+  const transactions = useFinanceStore((s) => s.transactions);
+  const snapshots = useFinanceStore((s) => s.snapshots);
+  const targetAllocation = useFinanceStore((s) => s.targetAllocation);
   const fxRate = useFinanceStore((s) => s.fxRate);
-  const replaceAll = useFinanceStore((s) => s.replaceAll);
+  const restoreBackup = useFinanceStore((s) => s.restoreBackup);
   const clearAll = useFinanceStore((s) => s.clearAll);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  const totalItems = holdings.length + liabilities.length + transactions.length + snapshots.length;
+
   function handleExport() {
-    const payload = { holdings, fxRate, exportedAt: new Date().toISOString() };
+    const payload: BackupData & { exportedAt: string } = {
+      holdings,
+      liabilities,
+      transactions,
+      snapshots,
+      targetAllocation,
+      fxRate,
+      exportedAt: new Date().toISOString(),
+    };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -36,8 +50,13 @@ export default function SettingsPage() {
       const text = await file.text();
       const data = JSON.parse(text);
       if (!Array.isArray(data.holdings)) throw new Error("Invalid file");
-      replaceAll(data.holdings as Holding[]);
-      setMessage(`Imported ${data.holdings.length} holdings.`);
+      restoreBackup(data as Partial<BackupData>);
+      const count =
+        (data.holdings?.length ?? 0) +
+        (data.liabilities?.length ?? 0) +
+        (data.transactions?.length ?? 0) +
+        (data.snapshots?.length ?? 0);
+      setMessage(`Imported ${count} items.`);
     } catch {
       setMessage("Couldn't read that file — make sure it's a backup exported from this app.");
     } finally {
@@ -47,7 +66,7 @@ export default function SettingsPage() {
   }
 
   function handleClear() {
-    if (confirm("Delete all holdings? This can't be undone unless you have a backup exported.")) {
+    if (confirm("Delete all data? This can't be undone unless you have a backup exported.")) {
       clearAll();
       setMessage("All data cleared.");
       setTimeout(() => setMessage(null), 4000);
@@ -84,7 +103,7 @@ export default function SettingsPage() {
             <Download size={18} className="text-primary" />
             <div>
               <div className="text-sm font-medium">Export backup (.json)</div>
-              <div className="text-xs text-muted">Save a copy of all {holdings.length} holdings</div>
+              <div className="text-xs text-muted">Save a copy of all {totalItems} items</div>
             </div>
           </button>
           <button

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, TrendingUp, PiggyBank, Settings } from "lucide-react";
+import { Home, TrendingUp, PiggyBank, LineChart, Settings } from "lucide-react";
 
 const items = [
   { href: "/", label: "Home", icon: Home },
   { href: "/invest", label: "Invest", icon: TrendingUp },
   { href: "/save", label: "Save", icon: PiggyBank },
+  { href: "/insights", label: "Insights", icon: LineChart },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

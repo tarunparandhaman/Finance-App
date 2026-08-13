@@ -29,11 +29,11 @@ export default function Autocomplete({
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (query.trim().length < minChars) {
-      setOptions([]);
-      return;
+      debounceRef.current = setTimeout(() => setOptions([]), 0);
+      return () => clearTimeout(debounceRef.current!);
     }
-    setLoading(true);
     debounceRef.current = setTimeout(async () => {
+      setLoading(true);
       const results = await onSearch(query.trim());
       setOptions(results);
       setLoading(false);
