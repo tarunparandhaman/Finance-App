@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const { preference, setPreference } = useTheme();
   const holdings = useFinanceStore((s) => s.holdings);
   const watchlist = useFinanceStore((s) => s.watchlist);
+  const goals = useFinanceStore((s) => s.goals);
   const liabilities = useFinanceStore((s) => s.liabilities);
   const transactions = useFinanceStore((s) => s.transactions);
   const snapshots = useFinanceStore((s) => s.snapshots);
@@ -34,6 +35,7 @@ export default function SettingsPage() {
     const payload: BackupData & { exportedAt: string } = {
       holdings,
       watchlist,
+      goals,
       liabilities,
       transactions,
       snapshots,

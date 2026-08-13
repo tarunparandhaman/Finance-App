@@ -9,6 +9,7 @@ import type {
   Transaction,
   Trade,
   WatchItem,
+  Goal,
 } from "./types";
 import { baseSymbol, preferredSymbol } from "./stocks";
 import { isTradeable, withDerivedPosition } from "./trades";
@@ -86,6 +87,9 @@ function dedupeHoldings(holdings: Holding[]): Holding[] {
   return merged;
 }
 
+/** Maximum symbols that can be followed at once. */
+export const WATCHLIST_LIMIT = 7;
+
 export const DEFAULT_TARGET_ALLOCATION: AllocationTarget = {
   EQUITY: 50,
   DEBT: 30,
@@ -109,6 +113,7 @@ export type NewHolding = DistributiveOmit<Holding, "id" | "createdAt" | "updated
 export interface BackupData {
   holdings: Holding[];
   watchlist: WatchItem[];
+  goals: Goal[];
   liabilities: Liability[];
   transactions: Transaction[];
   snapshots: NetWorthSnapshot[];
@@ -119,6 +124,7 @@ export interface BackupData {
 interface FinanceState {
   holdings: Holding[];
   watchlist: WatchItem[];
+  goals: Goal[];
   liabilities: Liability[];
   transactions: Transaction[];
   snapshots: NetWorthSnapshot[];
@@ -142,6 +148,10 @@ interface FinanceState {
   updateTransaction: (id: string, patch: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
 
+  addGoal: (g: Omit<Goal, "id" | "createdAt" | "updatedAt">) => void;
+  updateGoal: (id: string, patch: Partial<Goal>) => void;
+  deleteGoal: (id: string) => void;
+
   addWatchItem: (w: Omit<WatchItem, "id" | "createdAt">) => void;
   updateWatchItem: (id: string, patch: Partial<WatchItem>) => void;
   deleteWatchItem: (id: string) => void;
@@ -160,6 +170,7 @@ export const useFinanceStore = create<FinanceState>()(
     (set) => ({
       holdings: [],
       watchlist: [],
+      goals: [],
       liabilities: [],
       transactions: [],
       snapshots: [],
@@ -252,10 +263,27 @@ export const useFinanceStore = create<FinanceState>()(
       deleteTransaction: (id) =>
         set((state) => ({ transactions: state.transactions.filter((t) => t.id !== id) })),
 
+      addGoal: (g) =>
+        set((state) => {
+          const now = new Date().toISOString();
+          const goal: Goal = { ...g, id: makeId(), createdAt: now, updatedAt: now };
+          return { goals: [...state.goals, goal] };
+        }),
+      updateGoal: (id, patch) =>
+        set((state) => ({
+          goals: state.goals.map((g) =>
+            g.id === id ? { ...g, ...patch, updatedAt: new Date().toISOString() } : g
+          ),
+        })),
+      deleteGoal: (id) => set((state) => ({ goals: state.goals.filter((g) => g.id !== id) })),
+
       addWatchItem: (w) =>
         set((state) => {
           // Following the same symbol twice is always a mistake, not an intent.
           if (state.watchlist.some((x) => x.symbol === w.symbol)) return state;
+          // Capped deliberately: a short list stays glanceable, and each entry
+          // costs a quote fetch on every refresh.
+          if (state.watchlist.length >= WATCHLIST_LIMIT) return state;
           const item: WatchItem = { ...w, id: makeId(), createdAt: new Date().toISOString() };
           return { watchlist: [...state.watchlist, item] };
         }),
@@ -287,7 +315,8 @@ export const useFinanceStore = create<FinanceState>()(
       restoreBackup: (data) =>
         set({
           holdings: dedupeHoldings(ensureTrades(data.holdings ?? [])),
-          watchlist: data.watchlist ?? [],
+          watchlist: (data.watchlist ?? []).slice(0, WATCHLIST_LIMIT),
+          goals: data.goals ?? [],
           liabilities: data.liabilities ?? [],
           transactions: data.transactions ?? [],
           snapshots: data.snapshots ?? [],
@@ -298,6 +327,7 @@ export const useFinanceStore = create<FinanceState>()(
         set({
           holdings: [],
           watchlist: [],
+          goals: [],
           liabilities: [],
           transactions: [],
           snapshots: [],
@@ -311,6 +341,7 @@ export const useFinanceStore = create<FinanceState>()(
       partialize: (state) => ({
         holdings: state.holdings,
         watchlist: state.watchlist,
+        goals: state.goals,
         liabilities: state.liabilities,
         transactions: state.transactions,
         snapshots: state.snapshots,

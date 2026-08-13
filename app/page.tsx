@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Scale, LineChart as LineChartIcon, PieChart, ArrowUpRight, ArrowDownRight, ChevronRight } from "lucide-react";
+import { Scale, LineChart as LineChartIcon, PieChart, ArrowUpRight, ArrowDownRight, ChevronRight, Target } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import DonutChart from "@/components/DonutChart";
 import PortfolioChart from "@/components/PortfolioChart";
@@ -13,6 +13,8 @@ import { useFinanceStore } from "@/lib/store";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { CATEGORY_LABELS, valueHolding, totalLiabilities } from "@/lib/valuation";
 import { portfolioXirr, portfolioDayChange } from "@/lib/returns";
+import { goalProgress } from "@/lib/goals";
+import { useNow } from "@/lib/useNow";
 import { useChartTheme } from "@/lib/chartTheme";
 import { formatINR, formatPercent, timeAgo } from "@/lib/format";
 import { currentMonthKey, transactionsInMonth, summarizeMonth } from "@/lib/cashflow";
@@ -34,10 +36,13 @@ export default function DashboardPage() {
   const liabilities = useFinanceStore((s) => s.liabilities);
   const transactions = useFinanceStore((s) => s.transactions);
   const snapshots = useFinanceStore((s) => s.snapshots);
+  const goals = useFinanceStore((s) => s.goals);
   const fxRate = useFinanceStore((s) => s.fxRate);
   const { categoryColors } = useChartTheme();
 
   useAutoRefresh();
+
+  const nowMs = useNow();
 
   const usdInr = fxRate?.usdInr ?? 87;
 
@@ -73,6 +78,14 @@ export default function DashboardPage() {
 
   const dayChange = useMemo(() => portfolioDayChange(holdings, usdInr), [holdings, usdInr]);
   const annualised = useMemo(() => portfolioXirr(holdings, usdInr), [holdings, usdInr]);
+
+  // Surfaces the goal closest to completion — the one worth glancing at.
+  const primaryGoal = useMemo(() => {
+    if (goals.length === 0 || nowMs === 0) return null;
+    const scored = goals.map((goal) => ({ goal, progress: goalProgress(goal, netWorth, nowMs) }));
+    scored.sort((a, b) => b.progress.percent - a.progress.percent);
+    return scored[0];
+  }, [goals, netWorth, nowMs]);
 
   const monthSummary = useMemo(
     () => summarizeMonth(transactionsInMonth(transactions, currentMonthKey())),
@@ -261,6 +274,38 @@ export default function DashboardPage() {
                 <div className="text-sm font-semibold md:text-lg">Snapshot</div>
                 <div className="text-[10px] text-muted md:text-xs">net worth</div>
               </Link>
+
+              {primaryGoal && (
+                <Link
+                  href="/insights?tab=GOALS"
+                  className="card col-span-3 p-4 transition-transform active:shadow-none md:col-span-1 md:p-5 md:hover:-translate-y-0.5"
+                >
+                  <div className="mb-2 flex items-center gap-1.5">
+                    <Target size={15} className="text-primary" />
+                    <span className="truncate text-xs font-medium md:text-sm">{primaryGoal.goal.name}</span>
+                  </div>
+                  <div className="mb-1 flex items-baseline justify-between">
+                    <span
+                      className={`text-lg font-semibold tabular-nums ${
+                        primaryGoal.progress.reached ? "text-positive" : ""
+                      }`}
+                    >
+                      {primaryGoal.progress.percent.toFixed(1)}%
+                    </span>
+                    <span className="text-[10px] text-muted tabular-nums md:text-xs">
+                      of {formatINR(primaryGoal.progress.targetInr)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
+                    <div
+                      className={`h-full rounded-full ${
+                        primaryGoal.progress.reached ? "bg-positive" : "bg-primary"
+                      }`}
+                      style={{ width: `${Math.max(1.5, primaryGoal.progress.percent)}%` }}
+                    />
+                  </div>
+                </Link>
+              )}
             </div>
           </div>
         )}

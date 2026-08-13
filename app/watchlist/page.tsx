@@ -9,7 +9,7 @@ import IndicesStrip from "@/components/IndicesStrip";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import Field from "@/components/Field";
 import Autocomplete, { AutocompleteOption } from "@/components/Autocomplete";
-import { useFinanceStore } from "@/lib/store";
+import { useFinanceStore, WATCHLIST_LIMIT } from "@/lib/store";
 import { formatNumber, formatPercent, timeAgo } from "@/lib/format";
 import { baseSymbol } from "@/lib/stocks";
 
@@ -96,11 +96,12 @@ export default function WatchlistPage() {
   }
 
   const currency = market === "US_STOCK" ? "$" : "₹";
+  const atLimit = watchlist.length >= WATCHLIST_LIMIT;
 
   return (
     <PageShell
       title="Watchlist"
-      subtitle="Follow what you don't own yet"
+      subtitle={`Follow what you don't own yet · ${watchlist.length}/${WATCHLIST_LIMIT}`}
       wide
       action={
         <button
@@ -119,6 +120,12 @@ export default function WatchlistPage() {
         <div className="md:max-w-xs">
           <SegmentedControl options={MARKET_OPTIONS} value={market} onChange={setMarket} />
         </div>
+
+        {atLimit && (
+          <div className="rounded-lg bg-surface-alt px-3 py-2 text-xs text-muted">
+            Watchlist is full at {WATCHLIST_LIMIT}. Remove one to follow something else.
+          </div>
+        )}
 
         {shown.length === 0 ? (
           <div className="card border-dashed p-8 text-center text-sm text-muted">
@@ -163,7 +170,7 @@ export default function WatchlistPage() {
         )}
       </div>
 
-      <FloatingActionButton onClick={() => setAddOpen(true)} label="Add to watchlist" wide />
+      {!atLimit && <FloatingActionButton onClick={() => setAddOpen(true)} label="Add to watchlist" wide />}
 
       <Sheet open={addOpen} onClose={() => setAddOpen(false)} title="Follow a stock">
         <div className="space-y-4">

@@ -86,6 +86,20 @@ export interface FxRate {
   updatedAt: string;
 }
 
+/** A savings target measured against current net worth. */
+export interface Goal {
+  id: string;
+  name: string;
+  targetAmountInr: number;
+  /** Optional deadline; drives the "required per month" figure. */
+  targetDate?: string; // YYYY-MM-DD
+  /** Assumed annual return used when projecting contributions, in percent. */
+  assumedReturnPercent?: number;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** A symbol being followed without owning it. */
 export interface WatchItem {
   id: string;
