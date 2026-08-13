@@ -17,12 +17,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FinanceNerd's Piggy Bank Tracker",
-  description: "Track stocks, mutual funds, PF, NPS and more — all in one attractive, private place.",
+  title: "Corpus — every rupee you own, in one view",
+  description:
+    "A private wealth tracker for stocks, mutual funds, PF, NPS and more. Live prices, real returns, and your data never leaves your device.",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "Piggy Bank Tracker",
+    statusBarStyle: "black-translucent",
+    title: "Corpus",
   },
 };
 
@@ -31,8 +32,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#00c805" },
-    { media: "(prefers-color-scheme: dark)", color: "#06080a" },
+    { media: "(prefers-color-scheme: light)", color: "#0f766e" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0d10" },
   ],
 };
 

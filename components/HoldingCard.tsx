@@ -2,6 +2,7 @@
 
 import type { Holding } from "@/lib/types";
 import { valueHolding } from "@/lib/valuation";
+import { holdingDayChange } from "@/lib/returns";
 import { formatINR, formatNumber, formatPercent, timeAgo } from "@/lib/format";
 import { useFinanceStore } from "@/lib/store";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -16,6 +17,7 @@ export default function HoldingCard({
 }) {
   const usdInr = useFinanceStore((s) => s.fxRate?.usdInr ?? 87);
   const v = valueHolding(holding, usdInr);
+  const dayChange = holdingDayChange(holding, usdInr);
   const hasGain = holding.category === "IN_STOCK" || holding.category === "US_STOCK" || holding.category === "MUTUAL_FUND";
 
   let detail = "";
@@ -47,7 +49,17 @@ export default function HoldingCard({
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium">{holding.name}</div>
         <div className="truncate text-xs text-muted">{detail}</div>
-        {lastFetched && <div className="mt-0.5 text-[11px] text-muted">Updated {timeAgo(lastFetched)}</div>}
+        {dayChange ? (
+          <div
+            className={`mt-0.5 text-[11px] tabular-nums ${
+              dayChange.amountInr >= 0 ? "text-positive" : "text-negative"
+            }`}
+          >
+            {dayChange.amountInr >= 0 ? "▲" : "▼"} {formatPercent(dayChange.percent)} today
+          </div>
+        ) : (
+          lastFetched && <div className="mt-0.5 text-[11px] text-muted">Updated {timeAgo(lastFetched)}</div>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <div className="text-right">

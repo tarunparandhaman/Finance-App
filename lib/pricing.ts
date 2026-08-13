@@ -31,12 +31,16 @@ export async function refreshAllPrices(): Promise<void> {
     try {
       const res = await fetch(`/api/quote?symbols=${encodeURIComponent(symbols)}`);
       const data = await res.json();
-      const bySymbol: Record<string, { price?: number }> = {};
+      const bySymbol: Record<string, { price?: number; previousClose?: number }> = {};
       for (const q of data.quotes ?? []) bySymbol[q.symbol] = q;
       for (const s of stocks) {
         const q = bySymbol[s.symbol];
         if (q?.price) {
-          updateHolding(s.id, { currentPrice: q.price, lastFetched: new Date().toISOString() });
+          updateHolding(s.id, {
+            currentPrice: q.price,
+            previousClose: q.previousClose ?? s.previousClose,
+            lastFetched: new Date().toISOString(),
+          });
         }
       }
     } catch {
@@ -50,7 +54,11 @@ export async function refreshAllPrices(): Promise<void> {
         const res = await fetch(`/api/mf-nav?code=${encodeURIComponent(f.schemeCode)}`);
         const data = await res.json();
         if (typeof data.nav === "number") {
-          updateHolding(f.id, { currentNav: data.nav, lastFetched: new Date().toISOString() });
+          updateHolding(f.id, {
+            currentNav: data.nav,
+            previousNav: typeof data.previousNav === "number" ? data.previousNav : f.previousNav,
+            lastFetched: new Date().toISOString(),
+          });
         }
       } catch {
         // ignore
@@ -61,4 +69,53 @@ export async function refreshAllPrices(): Promise<void> {
 
 export function isPriceable(h: Holding): boolean {
   return h.category === "IN_STOCK" || h.category === "US_STOCK" || h.category === "MUTUAL_FUND";
+}
+
+export interface PricePoint {
+  t: number;
+  c: number;
+}
+
+// Historical series are immutable once published, so caching them for the
+// session avoids refetching the same range every time a chart mounts.
+const historyCache = new Map<string, PricePoint[]>();
+
+export async function fetchStockHistory(symbol: string, range: string): Promise<PricePoint[]> {
+  const key = `s:${symbol}:${range}`;
+  const cached = historyCache.get(key);
+  if (cached) return cached;
+
+  try {
+    const res = await fetch(`/api/history?symbol=${encodeURIComponent(symbol)}&range=${range}`);
+    const data = await res.json();
+    const points: PricePoint[] = data.points ?? [];
+    historyCache.set(key, points);
+    return points;
+  } catch {
+    return [];
+  }
+}
+
+/** Mutual fund history comes back as one full series; ranges are sliced client-side. */
+export async function fetchFundHistory(schemeCode: string): Promise<PricePoint[]> {
+  const key = `f:${schemeCode}`;
+  const cached = historyCache.get(key);
+  if (cached) return cached;
+
+  try {
+    const res = await fetch(`/api/mf-history?code=${encodeURIComponent(schemeCode)}`);
+    const data = await res.json();
+    const points: PricePoint[] = data.points ?? [];
+    historyCache.set(key, points);
+    return points;
+  } catch {
+    return [];
+  }
+}
+
+/** Full available history for a holding, oldest-first, in its own currency. */
+export async function fetchHoldingHistory(h: Holding, range = "max"): Promise<PricePoint[]> {
+  if (h.category === "MUTUAL_FUND") return fetchFundHistory(h.schemeCode);
+  if (h.category === "IN_STOCK" || h.category === "US_STOCK") return fetchStockHistory(h.symbol, range);
+  return [];
 }

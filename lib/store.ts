@@ -8,6 +8,7 @@ import type {
   AllocationTarget,
   Transaction,
   Trade,
+  WatchItem,
 } from "./types";
 import { baseSymbol, preferredSymbol } from "./stocks";
 import { isTradeable, withDerivedPosition } from "./trades";
@@ -107,6 +108,7 @@ export type NewHolding = DistributiveOmit<Holding, "id" | "createdAt" | "updated
 
 export interface BackupData {
   holdings: Holding[];
+  watchlist: WatchItem[];
   liabilities: Liability[];
   transactions: Transaction[];
   snapshots: NetWorthSnapshot[];
@@ -116,6 +118,7 @@ export interface BackupData {
 
 interface FinanceState {
   holdings: Holding[];
+  watchlist: WatchItem[];
   liabilities: Liability[];
   transactions: Transaction[];
   snapshots: NetWorthSnapshot[];
@@ -139,6 +142,10 @@ interface FinanceState {
   updateTransaction: (id: string, patch: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
 
+  addWatchItem: (w: Omit<WatchItem, "id" | "createdAt">) => void;
+  updateWatchItem: (id: string, patch: Partial<WatchItem>) => void;
+  deleteWatchItem: (id: string) => void;
+
   takeSnapshot: (assetsInr: number, liabilitiesInr: number, note?: string) => void;
   deleteSnapshot: (id: string) => void;
 
@@ -152,6 +159,7 @@ export const useFinanceStore = create<FinanceState>()(
   persist(
     (set) => ({
       holdings: [],
+      watchlist: [],
       liabilities: [],
       transactions: [],
       snapshots: [],
@@ -244,6 +252,20 @@ export const useFinanceStore = create<FinanceState>()(
       deleteTransaction: (id) =>
         set((state) => ({ transactions: state.transactions.filter((t) => t.id !== id) })),
 
+      addWatchItem: (w) =>
+        set((state) => {
+          // Following the same symbol twice is always a mistake, not an intent.
+          if (state.watchlist.some((x) => x.symbol === w.symbol)) return state;
+          const item: WatchItem = { ...w, id: makeId(), createdAt: new Date().toISOString() };
+          return { watchlist: [...state.watchlist, item] };
+        }),
+      updateWatchItem: (id, patch) =>
+        set((state) => ({
+          watchlist: state.watchlist.map((w) => (w.id === id ? { ...w, ...patch } : w)),
+        })),
+      deleteWatchItem: (id) =>
+        set((state) => ({ watchlist: state.watchlist.filter((w) => w.id !== id) })),
+
       takeSnapshot: (assetsInr, liabilitiesInr, note) =>
         set((state) => {
           const snapshot: NetWorthSnapshot = {
@@ -265,6 +287,7 @@ export const useFinanceStore = create<FinanceState>()(
       restoreBackup: (data) =>
         set({
           holdings: dedupeHoldings(ensureTrades(data.holdings ?? [])),
+          watchlist: data.watchlist ?? [],
           liabilities: data.liabilities ?? [],
           transactions: data.transactions ?? [],
           snapshots: data.snapshots ?? [],
@@ -274,6 +297,7 @@ export const useFinanceStore = create<FinanceState>()(
       clearAll: () =>
         set({
           holdings: [],
+          watchlist: [],
           liabilities: [],
           transactions: [],
           snapshots: [],
@@ -286,6 +310,7 @@ export const useFinanceStore = create<FinanceState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         holdings: state.holdings,
+        watchlist: state.watchlist,
         liabilities: state.liabilities,
         transactions: state.transactions,
         snapshots: state.snapshots,

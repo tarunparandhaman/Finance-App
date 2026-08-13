@@ -39,6 +39,8 @@ export interface StockHolding extends BaseHolding {
   avgPrice: number;
   trades: Trade[];
   currentPrice?: number;
+  /** Prior session's close, used for the day-change figure. */
+  previousClose?: number;
   currency: "INR" | "USD";
   lastFetched?: string;
 }
@@ -53,6 +55,8 @@ export interface MutualFundHolding extends BaseHolding {
   avgNav: number;
   trades: Trade[];
   currentNav?: number;
+  /** Prior published NAV, used for the day-change figure. */
+  previousNav?: number;
   lastFetched?: string;
 }
 
@@ -80,6 +84,19 @@ export type Holding =
 export interface FxRate {
   usdInr: number;
   updatedAt: string;
+}
+
+/** A symbol being followed without owning it. */
+export interface WatchItem {
+  id: string;
+  symbol: string;
+  name: string;
+  /** Which Invest tab it belongs to, so currency and search behave correctly. */
+  market: "IN_STOCK" | "US_STOCK";
+  price?: number;
+  previousClose?: number;
+  lastFetched?: string;
+  createdAt: string;
 }
 
 export type LiabilityType = "HOME_LOAN" | "VEHICLE_LOAN" | "PERSONAL_LOAN" | "CREDIT_CARD" | "OTHER";

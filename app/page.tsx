@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { Scale, LineChart as LineChartIcon, PieChart, ArrowUpRight, ArrowDownRight, ChevronRight } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import DonutChart from "@/components/DonutChart";
+import PortfolioChart from "@/components/PortfolioChart";
+import IndicesStrip from "@/components/IndicesStrip";
 import RefreshButton from "@/components/RefreshButton";
 import CategoryIcon, { LiabilityIcon } from "@/components/CategoryIcon";
 import { useFinanceStore } from "@/lib/store";
-import { refreshAllPrices, isPriceable } from "@/lib/pricing";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { CATEGORY_LABELS, valueHolding, totalLiabilities } from "@/lib/valuation";
+import { portfolioXirr, portfolioDayChange } from "@/lib/returns";
 import { useChartTheme } from "@/lib/chartTheme";
 import { formatINR, formatPercent, timeAgo } from "@/lib/format";
 import { currentMonthKey, transactionsInMonth, summarizeMonth } from "@/lib/cashflow";
@@ -33,14 +36,8 @@ export default function DashboardPage() {
   const snapshots = useFinanceStore((s) => s.snapshots);
   const fxRate = useFinanceStore((s) => s.fxRate);
   const { categoryColors } = useChartTheme();
-  const autoRefreshedRef = useRef(false);
 
-  useEffect(() => {
-    if (!autoRefreshedRef.current && holdings.some(isPriceable)) {
-      autoRefreshedRef.current = true;
-      refreshAllPrices();
-    }
-  }, [holdings]);
+  useAutoRefresh();
 
   const usdInr = fxRate?.usdInr ?? 87;
 
@@ -74,6 +71,9 @@ export default function DashboardPage() {
     return { change, percent };
   }, [snapshots, netWorth]);
 
+  const dayChange = useMemo(() => portfolioDayChange(holdings, usdInr), [holdings, usdInr]);
+  const annualised = useMemo(() => portfolioXirr(holdings, usdInr), [holdings, usdInr]);
+
   const monthSummary = useMemo(
     () => summarizeMonth(transactionsInMonth(transactions, currentMonthKey())),
     [transactions]
@@ -92,44 +92,62 @@ export default function DashboardPage() {
     <PageShell title="Net Worth" action={<RefreshButton />} wide>
       <div className="space-y-6">
         <div className="hero-card p-6 md:p-10">
-          <div className="text-sm text-white/70 md:text-base">Net worth</div>
-          <div className="mt-1 text-4xl font-extrabold tracking-tight tabular-nums md:text-6xl">
-            {formatINR(netWorth)}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-white/70 md:text-sm">
-            {trend && (
-              <span
-                className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 font-medium text-white ${
-                  trend.change >= 0 ? "bg-primary/25" : "bg-negative/25"
-                }`}
-              >
-                {trend.change >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                {formatPercent(trend.percent)} since last snapshot
-              </span>
-            )}
-            <span>{lastUpdated ? `Prices updated ${timeAgo(lastUpdated)}` : "Add a holding to get started"}</span>
-          </div>
+          <div className="relative z-10">
+            <div className="text-sm text-white/60 md:text-base">Net worth</div>
+            <div className="display-figure mt-1 text-4xl md:text-6xl">{formatINR(netWorth)}</div>
 
-          {(investedTotal > 0 || liabilitiesTotal > 0) && (
-            <div className="mt-6 grid grid-cols-3 gap-3 border-t border-white/10 pt-4 text-xs md:max-w-md md:text-sm">
-              <div>
-                <div className="text-white/50">Invested</div>
-                <div className="font-semibold tabular-nums text-white">{formatINR(investedTotal)}</div>
-              </div>
-              <div>
-                <div className="text-white/50">Returns</div>
-                <div className={`font-semibold tabular-nums ${totalGain >= 0 ? "text-primary" : "text-negative"}`}>
-                  {totalGain >= 0 ? "+" : ""}
-                  {formatPercent(totalGainPercent)}
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-white/60 md:text-sm">
+              {dayChange && (
+                <span
+                  className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 font-medium ${
+                    dayChange.amountInr >= 0 ? "bg-primary/20 text-primary" : "bg-negative/20 text-negative"
+                  }`}
+                >
+                  {dayChange.amountInr >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                  {formatINR(Math.abs(dayChange.amountInr))} ({formatPercent(dayChange.percent)}) today
+                </span>
+              )}
+              {trend && (
+                <span className="rounded-full bg-white/10 px-2 py-0.5 font-medium text-white/80">
+                  {formatPercent(trend.percent)} since last snapshot
+                </span>
+              )}
+              <span>{lastUpdated ? `Updated ${timeAgo(lastUpdated)}` : "Add a holding to get started"}</span>
+            </div>
+
+            {(investedTotal > 0 || liabilitiesTotal > 0) && (
+              <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-white/10 pt-4 text-xs sm:grid-cols-4 md:max-w-2xl md:text-sm">
+                <div>
+                  <div className="text-white/45">Invested</div>
+                  <div className="font-semibold tabular-nums text-white">{formatINR(investedTotal)}</div>
+                </div>
+                <div>
+                  <div className="text-white/45">Total return</div>
+                  <div className={`font-semibold tabular-nums ${totalGain >= 0 ? "text-primary" : "text-negative"}`}>
+                    {totalGain >= 0 ? "+" : ""}
+                    {formatPercent(totalGainPercent)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-white/45">Annualised</div>
+                  <div
+                    className={`font-semibold tabular-nums ${
+                      annualised === null ? "text-white/70" : annualised >= 0 ? "text-primary" : "text-negative"
+                    }`}
+                  >
+                    {annualised === null ? "—" : formatPercent(annualised)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-white/45">Debts</div>
+                  <div className="font-semibold tabular-nums text-white">{formatINR(liabilitiesTotal)}</div>
                 </div>
               </div>
-              <div>
-                <div className="text-white/50">Debts</div>
-                <div className="font-semibold tabular-nums text-white">{formatINR(liabilitiesTotal)}</div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
+
+        <IndicesStrip />
 
         {isEmpty ? (
           <div className="card border-dashed p-8 text-center md:p-14">
@@ -148,6 +166,8 @@ export default function DashboardPage() {
         ) : (
           <div className="md:grid md:grid-cols-3 md:items-start md:gap-6">
             <div className="space-y-6 md:col-span-2">
+              <PortfolioChart />
+
               {chartData.some((c) => c.value > 0) && (
                 <div className="card p-4 md:p-6">
                   <h2 className="mb-1 text-sm font-semibold md:text-base">Where your money is</h2>

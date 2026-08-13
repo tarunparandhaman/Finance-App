@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { Plus, Trash2, ArrowDownLeft, ArrowUpRight, Pencil } from "lucide-react";
 import Sheet from "@/components/Sheet";
+import PriceChart from "@/components/PriceChart";
 import TradeForm from "@/components/forms/TradeForm";
 import { useFinanceStore } from "@/lib/store";
 import { valueHolding } from "@/lib/valuation";
+import { holdingXirr, holdingDayChange } from "@/lib/returns";
 import { formatINR, formatNumber, formatPercent, timeAgo } from "@/lib/format";
 import { sortTrades, tradeLabel, type TradeableHolding } from "@/lib/trades";
 import type { Trade } from "@/lib/types";
@@ -40,6 +42,9 @@ export default function HoldingDetail({ holding, onClose }: { holding: Tradeable
     holding.category === "MUTUAL_FUND" ? (holding.currentNav ?? holding.avgNav) : (holding.currentPrice ?? holding.avgPrice);
   const trades = sortTrades(holding.trades);
 
+  const annualised = holdingXirr(holding, usdInr);
+  const dayChange = holdingDayChange(holding, usdInr);
+
   return (
     <>
       <div className="space-y-5">
@@ -48,16 +53,18 @@ export default function HoldingDetail({ holding, onClose }: { holding: Tradeable
             {holding.category === "MUTUAL_FUND" ? holding.schemeCode : holding.symbol}
             {holding.lastFetched && ` · updated ${timeAgo(holding.lastFetched)}`}
           </div>
-          <div className="mt-1 text-3xl font-bold tracking-tight tabular-nums">
-            {formatINR(v.currentValueInr)}
-          </div>
-          <div
-            className={`mt-0.5 text-sm font-medium tabular-nums ${
-              v.gainInr >= 0 ? "text-positive" : "text-negative"
-            }`}
-          >
-            {v.gainInr >= 0 ? "+" : ""}
-            {formatINR(v.gainInr)} ({formatPercent(v.gainPercent)})
+          <div className="display-figure mt-1 text-3xl">{formatINR(v.currentValueInr)}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium tabular-nums">
+            <span className={v.gainInr >= 0 ? "text-positive" : "text-negative"}>
+              {v.gainInr >= 0 ? "+" : ""}
+              {formatINR(v.gainInr)} ({formatPercent(v.gainPercent)}) overall
+            </span>
+            {dayChange && (
+              <span className={dayChange.amountInr >= 0 ? "text-positive" : "text-negative"}>
+                {dayChange.amountInr >= 0 ? "+" : ""}
+                {formatINR(dayChange.amountInr)} ({formatPercent(dayChange.percent)}) today
+              </span>
+            )}
           </div>
         </div>
 
@@ -70,7 +77,24 @@ export default function HoldingDetail({ holding, onClose }: { holding: Tradeable
             value={`${symbol}${formatNumber(currentPrice)}`}
             tone={currentPrice >= avgPrice ? "positive" : "negative"}
           />
+          {annualised !== null && (
+            <div className="col-span-2 rounded-xl bg-surface-alt px-3 py-2.5">
+              <div className="text-[11px] text-muted">Annualised return (XIRR)</div>
+              <div
+                className={`text-sm font-semibold tabular-nums ${
+                  annualised >= 0 ? "text-positive" : "text-negative"
+                }`}
+              >
+                {formatPercent(annualised)} per year
+              </div>
+              <div className="mt-0.5 text-[11px] text-muted">
+                Accounts for when you invested, not just how much.
+              </div>
+            </div>
+          )}
         </div>
+
+        <PriceChart holding={holding} />
 
         <div>
           <div className="mb-2 flex items-center justify-between">

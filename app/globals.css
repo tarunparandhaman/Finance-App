@@ -1,45 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f7f5;
+  --background: #fbfaf8;
   --surface: #ffffff;
-  --surface-alt: #f0f2ef;
-  --foreground: #0a0e0a;
-  --muted: #5c6b60;
-  --border: #e2e6e0;
-  --primary: #00c805;
-  --primary-dark: #00a604;
-  --primary-ink: #06210a;
-  --accent: #00e0ff;
-  --positive: #00c805;
-  --negative: #ff5b5b;
-  --sidebar-bg: #0a0e0a;
-  --sidebar-foreground: #f2f5f1;
-  --sidebar-muted: #7d8a80;
-  --sidebar-border: #1c2420;
-  --shadow-card: 0 1px 2px rgba(10, 14, 10, 0.04), 0 1px 3px rgba(10, 14, 10, 0.04);
-  --shadow-hero: 0 20px 60px -20px rgba(0, 200, 5, 0.35);
+  --surface-alt: #f4f2ee;
+  --foreground: #14161a;
+  --muted: #6b7280;
+  --border: #e6e3dd;
+  --primary: #0f766e;
+  --primary-dark: #0b5d56;
+  --primary-ink: #ffffff;
+  --accent: #b08d4f;
+  --positive: #0f8a5f;
+  --negative: #c0392f;
+  --sidebar-bg: #14161a;
+  --sidebar-foreground: #f2f1ee;
+  --sidebar-muted: #8b8f96;
+  --sidebar-border: #24272d;
+  --shadow-card: 0 1px 2px rgba(20, 22, 26, 0.04), 0 1px 3px rgba(20, 22, 26, 0.03);
+  --shadow-hero: 0 24px 60px -28px rgba(20, 22, 26, 0.5);
 }
 
 :root[data-theme="dark"] {
-  --background: #06080a;
-  --surface: #10141a;
-  --surface-alt: #171d24;
-  --foreground: #f2f7f4;
-  --muted: #8a9691;
-  --border: #212a26;
-  --primary: #00e309;
-  --primary-dark: #00b807;
-  --primary-ink: #04160a;
-  --accent: #22e9ff;
-  --positive: #00e309;
-  --negative: #ff6b6b;
-  --sidebar-bg: #030504;
-  --sidebar-foreground: #f2f5f1;
-  --sidebar-muted: #6d7973;
-  --sidebar-border: #171d1a;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-hero: 0 20px 60px -16px rgba(0, 227, 9, 0.25);
+  --background: #0c0d10;
+  --surface: #15171b;
+  --surface-alt: #1c1f24;
+  --foreground: #f0efec;
+  --muted: #8b9099;
+  --border: #24272d;
+  --primary: #2dd4bf;
+  --primary-dark: #14b8a6;
+  --primary-ink: #06201d;
+  --accent: #d4b478;
+  --positive: #34d399;
+  --negative: #f87171;
+  --sidebar-bg: #08090b;
+  --sidebar-foreground: #f0efec;
+  --sidebar-muted: #767b83;
+  --sidebar-border: #1a1d21;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-hero: 0 24px 60px -28px rgba(0, 0, 0, 0.85);
 }
 
 @theme inline {
@@ -75,6 +75,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 input,
@@ -88,36 +89,43 @@ textarea {
   font-variant-numeric: tabular-nums;
 }
 
+/* Large currency figures read better slightly tightened. */
+.display-figure {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 1rem;
+  border-radius: 0.875rem;
   box-shadow: var(--shadow-card);
 }
 
 .hero-card {
   position: relative;
   overflow: hidden;
-  background: radial-gradient(120% 140% at 100% 0%, rgba(0, 227, 9, 0.28) 0%, rgba(0, 227, 9, 0) 55%),
-    linear-gradient(150deg, #060a07 0%, #0b120c 55%, #06100a 100%);
-  color: #f2f7f4;
-  border-radius: 1.5rem;
+  background:
+    radial-gradient(120% 150% at 88% -10%, rgba(45, 212, 191, 0.16) 0%, rgba(45, 212, 191, 0) 55%),
+    radial-gradient(90% 120% at 10% 110%, rgba(176, 141, 79, 0.12) 0%, rgba(176, 141, 79, 0) 60%),
+    linear-gradient(155deg, #16181d 0%, #101216 60%, #0b0d10 100%);
+  color: #f5f4f1;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.25rem;
   box-shadow: var(--shadow-hero);
 }
 
-.hero-card::after {
+/* Hairline sheen along the top edge — reads as glass rather than flat fill. */
+.hero-card::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 18px 18px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent 70%);
-  pointer-events: none;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
 }
 
-.brand-gradient-text {
-  background: linear-gradient(120deg, var(--primary) 0%, var(--accent) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+.brand-mark {
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
