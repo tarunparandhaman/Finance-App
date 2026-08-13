@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Download, Upload, Trash2, ShieldCheck, Sun, Moon, Monitor } from "lucide-react";
+import Link from "next/link";
+import { Download, Upload, Trash2, ShieldCheck, Sun, Moon, Monitor, FileSpreadsheet, ChevronRight } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import { useFinanceStore } from "@/lib/store";
 import { useTheme, type ThemePreference } from "@/lib/theme";
@@ -123,6 +124,18 @@ export default function SettingsPage() {
               &ldquo;System&rdquo; follows your phone or computer&apos;s light/dark setting automatically.
             </p>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="px-1 text-sm font-medium text-muted">Import</h2>
+          <Link href="/import" className="flex w-full items-center gap-3 card p-4 text-left">
+            <FileSpreadsheet size={18} className="text-primary" />
+            <div className="flex-1">
+              <div className="text-sm font-medium">Import from broker (CSV)</div>
+              <div className="text-xs text-muted">Zerodha, Groww, INDmoney and others — export a CSV and bring it in</div>
+            </div>
+            <ChevronRight size={16} className="text-muted" />
+          </Link>
         </div>
 
         <div className="space-y-2">
