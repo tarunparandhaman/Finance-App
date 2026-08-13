@@ -3,6 +3,7 @@
 import type { Liability } from "@/lib/types";
 import { LIABILITY_TYPE_LABELS } from "@/lib/valuation";
 import { formatINR } from "@/lib/format";
+import { LiabilityIcon } from "@/components/CategoryIcon";
 import { ChevronRight } from "lucide-react";
 
 export default function LiabilityCard({
@@ -13,10 +14,8 @@ export default function LiabilityCard({
   onClick: () => void;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4 text-left"
-    >
+    <button onClick={onClick} className="card flex w-full items-center gap-3 p-4 text-left active:shadow-none">
+      <LiabilityIcon size={16} />
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium">{liability.name}</div>
         <div className="truncate text-xs text-muted">
@@ -24,7 +23,7 @@ export default function LiabilityCard({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <div className="font-semibold text-negative">{formatINR(liability.currentBalance)}</div>
+        <div className="font-semibold tabular-nums text-negative">{formatINR(liability.currentBalance)}</div>
         <ChevronRight size={18} className="text-muted" />
       </div>
     </button>

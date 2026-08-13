@@ -55,7 +55,7 @@ export default function CashflowTab() {
 
   return (
     <div className="space-y-4 pb-20">
-      <div className="flex items-center justify-between rounded-xl border border-border bg-surface px-3 py-2">
+      <div className="flex items-center justify-between card px-3 py-2">
         <button onClick={() => setMonth((m) => shiftMonth(m, -1))} className="rounded-full p-1.5 hover:bg-background">
           <ChevronLeft size={18} />
         </button>
@@ -70,31 +70,31 @@ export default function CashflowTab() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="card p-4">
           <div className="text-xs text-muted">Income</div>
           <div className="text-lg font-semibold text-positive">{formatINR(summary.income)}</div>
         </div>
-        <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="card p-4">
           <div className="text-xs text-muted">Expenses</div>
           <div className="text-lg font-semibold text-negative">{formatINR(summary.expense)}</div>
         </div>
-        <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="card p-4">
           <div className="text-xs text-muted">Invested</div>
           <div className="text-lg font-semibold text-primary">{formatINR(summary.investment)}</div>
         </div>
-        <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="card p-4">
           <div className="text-xs text-muted">Savings rate</div>
           <div className="text-lg font-semibold">{formatPercent(summary.savingsRate)}</div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="card p-4">
         <h3 className="mb-3 text-sm font-medium">Monthly trend</h3>
         <TrendChart data={trend} />
       </div>
 
       {expenseByCategory.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="card p-4">
           <h3 className="mb-3 text-sm font-medium">Expenses by category</h3>
           <div className="space-y-2.5">
             {expenseByCategory.map((c) => (
@@ -115,7 +115,7 @@ export default function CashflowTab() {
       )}
 
       {incomeByCategory.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="card p-4">
           <h3 className="mb-3 text-sm font-medium">Income by category</h3>
           <div className="space-y-2.5">
             {incomeByCategory.map((c) => (
@@ -136,7 +136,7 @@ export default function CashflowTab() {
       )}
 
       {summary.expense > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="card p-4">
           <h3 className="mb-3 text-sm font-medium">Recurring vs one-off</h3>
           <div className="flex gap-3 text-sm">
             <div className="flex-1 rounded-lg bg-background p-3">
@@ -154,7 +154,7 @@ export default function CashflowTab() {
       )}
 
       {biggest.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="card p-4">
           <h3 className="mb-3 text-sm font-medium">Biggest expenses</h3>
           <div className="space-y-2">
             {biggest.map((t, i) => (
@@ -174,7 +174,7 @@ export default function CashflowTab() {
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="card p-4">
         <h3 className="mb-3 text-sm font-medium">Transactions this month</h3>
         {sortedMonthTx.length === 0 ? (
           <p className="text-sm text-muted">No transactions yet — add one with the + button.</p>

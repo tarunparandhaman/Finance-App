@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import { Scale, LineChart as LineChartIcon, PieChart } from "lucide-react";
+import { Scale, LineChart as LineChartIcon, PieChart, ArrowUpRight, ArrowDownRight, ChevronRight } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import DonutChart from "@/components/DonutChart";
 import RefreshButton from "@/components/RefreshButton";
+import CategoryIcon, { LiabilityIcon } from "@/components/CategoryIcon";
 import { useFinanceStore } from "@/lib/store";
 import { refreshAllPrices, isPriceable } from "@/lib/pricing";
 import { CATEGORY_COLORS, CATEGORY_LABELS, valueHolding, totalLiabilities } from "@/lib/valuation";
@@ -26,6 +27,7 @@ export default function DashboardPage() {
   const holdings = useFinanceStore((s) => s.holdings);
   const liabilities = useFinanceStore((s) => s.liabilities);
   const transactions = useFinanceStore((s) => s.transactions);
+  const snapshots = useFinanceStore((s) => s.snapshots);
   const fxRate = useFinanceStore((s) => s.fxRate);
   const autoRefreshedRef = useRef(false);
 
@@ -55,6 +57,15 @@ export default function DashboardPage() {
   const liabilitiesTotal = useMemo(() => totalLiabilities(liabilities, usdInr), [liabilities, usdInr]);
   const netWorth = assetsTotal - liabilitiesTotal;
 
+  const trend = useMemo(() => {
+    if (snapshots.length === 0) return null;
+    const sorted = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
+    const latest = sorted[sorted.length - 1];
+    const changeVsLatestSnapshot = netWorth - latest.netWorthInr;
+    const changePercent = latest.netWorthInr !== 0 ? (changeVsLatestSnapshot / Math.abs(latest.netWorthInr)) * 100 : 0;
+    return { changeVsLatestSnapshot, changePercent, since: latest.date };
+  }, [snapshots, netWorth]);
+
   const monthSummary = useMemo(
     () => summarizeMonth(transactionsInMonth(transactions, currentMonthKey())),
     [transactions]
@@ -75,34 +86,44 @@ export default function DashboardPage() {
   return (
     <PageShell title="Net Worth" action={<RefreshButton />}>
       <div className="space-y-6">
-        <div className="rounded-2xl border border-border bg-surface p-5">
-          <div className="text-sm text-muted">Net worth</div>
-          <div className="mt-1 text-3xl font-bold tracking-tight">{formatINR(netWorth)}</div>
-          <div className="mt-1 text-xs text-muted">
-            {lastUpdated ? `Prices updated ${timeAgo(lastUpdated)}` : "Add a holding to get started"}
+        <div className="hero-card p-5">
+          <div className="text-sm text-white/75">Net worth</div>
+          <div className="mt-1 text-4xl font-bold tracking-tight tabular-nums">{formatINR(netWorth)}</div>
+          <div className="mt-2 flex items-center gap-2 text-xs text-white/75">
+            {trend && (
+              <span
+                className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 font-medium ${
+                  trend.changeVsLatestSnapshot >= 0 ? "bg-white/20" : "bg-black/20"
+                }`}
+              >
+                {trend.changeVsLatestSnapshot >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                {formatPercent(trend.changePercent)}
+              </span>
+            )}
+            <span>{lastUpdated ? `Prices updated ${timeAgo(lastUpdated)}` : "Add a holding to get started"}</span>
           </div>
           {liabilitiesTotal > 0 && (
-            <div className="mt-3 flex gap-4 border-t border-border pt-3 text-xs">
-              <span className="text-muted">
-                Assets <span className="font-medium text-foreground">{formatINR(assetsTotal)}</span>
+            <div className="mt-4 flex gap-5 border-t border-white/20 pt-3 text-xs">
+              <span className="text-white/75">
+                Assets <span className="font-semibold text-white">{formatINR(assetsTotal)}</span>
               </span>
-              <span className="text-muted">
-                Debts <span className="font-medium text-negative">{formatINR(liabilitiesTotal)}</span>
+              <span className="text-white/75">
+                Debts <span className="font-semibold text-white">{formatINR(liabilitiesTotal)}</span>
               </span>
             </div>
           )}
         </div>
 
         {isEmpty ? (
-          <div className="rounded-2xl border border-dashed border-border p-8 text-center">
+          <div className="card border-dashed p-8 text-center">
             <p className="mb-4 text-sm text-muted">
               You haven&apos;t added anything yet. Start with your stocks, mutual funds, PF, NPS or other savings.
             </p>
             <div className="flex justify-center gap-3">
-              <Link href="/invest" className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white">
+              <Link href="/invest" className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-white">
                 Add investments
               </Link>
-              <Link href="/save" className="rounded-lg border border-border px-4 py-2 text-sm font-medium">
+              <Link href="/save" className="rounded-full border border-border px-4 py-2 text-sm font-medium">
                 Add savings
               </Link>
             </div>
@@ -110,28 +131,19 @@ export default function DashboardPage() {
         ) : (
           <>
             <div className="grid grid-cols-3 gap-2">
-              <Link
-                href="/insights?tab=CASHFLOW"
-                className="rounded-xl border border-border bg-surface p-3 text-center"
-              >
+              <Link href="/insights?tab=CASHFLOW" className="card p-3 text-center transition-shadow active:shadow-none">
                 <PieChart size={16} className="mx-auto mb-1 text-primary" />
                 <div className="text-xs text-muted">This month</div>
-                <div className="text-sm font-semibold">{formatPercent(monthSummary.savingsRate)}</div>
+                <div className="text-sm font-semibold tabular-nums">{formatPercent(monthSummary.savingsRate)}</div>
                 <div className="text-[10px] text-muted">saved</div>
               </Link>
-              <Link
-                href="/insights?tab=ALLOCATION"
-                className="rounded-xl border border-border bg-surface p-3 text-center"
-              >
+              <Link href="/insights?tab=ALLOCATION" className="card p-3 text-center transition-shadow active:shadow-none">
                 <Scale size={16} className="mx-auto mb-1 text-primary" />
                 <div className="text-xs text-muted">Allocation</div>
                 <div className="text-sm font-semibold">Rebalance</div>
                 <div className="text-[10px] text-muted">check fit</div>
               </Link>
-              <Link
-                href="/insights?tab=HISTORY"
-                className="rounded-xl border border-border bg-surface p-3 text-center"
-              >
+              <Link href="/insights?tab=HISTORY" className="card p-3 text-center transition-shadow active:shadow-none">
                 <LineChartIcon size={16} className="mx-auto mb-1 text-primary" />
                 <div className="text-xs text-muted">History</div>
                 <div className="text-sm font-semibold">Snapshot</div>
@@ -140,7 +152,7 @@ export default function DashboardPage() {
             </div>
 
             {chartData.some((c) => c.value > 0) && (
-              <div className="rounded-2xl border border-border bg-surface p-4">
+              <div className="card p-4">
                 <DonutChart data={chartData} />
               </div>
             )}
@@ -156,18 +168,18 @@ export default function DashboardPage() {
                     <Link
                       key={cat}
                       href={`${route.href}?tab=${route.tab}`}
-                      className="flex items-center justify-between rounded-xl border border-border bg-surface px-4 py-3"
+                      className="card flex items-center justify-between px-4 py-3 active:shadow-none"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: CATEGORY_COLORS[cat] }}
-                        />
+                      <div className="flex items-center gap-3">
+                        <CategoryIcon category={cat} size={16} />
                         <span className="text-sm font-medium">{CATEGORY_LABELS[cat]}</span>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold">{formatINR(value)}</div>
-                        <div className="text-xs text-muted">{pct.toFixed(1)}%</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <div className="text-sm font-semibold tabular-nums">{formatINR(value)}</div>
+                          <div className="text-xs text-muted">{pct.toFixed(1)}%</div>
+                        </div>
+                        <ChevronRight size={16} className="text-muted" />
                       </div>
                     </Link>
                   );
@@ -175,14 +187,17 @@ export default function DashboardPage() {
                 {liabilities.length > 0 && (
                   <Link
                     href="/save?tab=LIABILITY"
-                    className="flex items-center justify-between rounded-xl border border-border bg-surface px-4 py-3"
+                    className="card flex items-center justify-between px-4 py-3 active:shadow-none"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <span className="h-2.5 w-2.5 rounded-full bg-negative" />
-                      <span className="text-sm font-medium">Loans & Debts</span>
+                    <div className="flex items-center gap-3">
+                      <LiabilityIcon size={16} />
+                      <span className="text-sm font-medium">Loans &amp; Debts</span>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-semibold text-negative">-{formatINR(liabilitiesTotal)}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-semibold text-negative tabular-nums">
+                        -{formatINR(liabilitiesTotal)}
+                      </div>
+                      <ChevronRight size={16} className="text-muted" />
                     </div>
                   </Link>
                 )}

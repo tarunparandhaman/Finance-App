@@ -18,7 +18,7 @@ export default function RefreshButton({ className = "" }: { className?: string }
         }
       }}
       disabled={loading}
-      className={`flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium disabled:opacity-60 ${className}`}
+      className={`flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium shadow-sm transition-shadow disabled:opacity-60 ${className}`}
     >
       <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
       {loading ? "Refreshing…" : "Refresh prices"}

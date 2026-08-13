@@ -61,31 +61,31 @@ export default function HistoryTab() {
         </div>
       ) : (
         <>
-          <div className="rounded-xl border border-border bg-surface p-4">
+          <div className="card p-4">
             <h3 className="mb-3 text-sm font-medium">Net worth over time</h3>
             <NetWorthChart snapshots={snapshots} />
           </div>
 
           {stats && (
             <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-xl border border-border bg-surface p-3">
+              <div className="card p-3">
                 <div className="text-xs text-muted">Growth</div>
                 <div className={`text-sm font-semibold ${stats.growth >= 0 ? "text-positive" : "text-negative"}`}>
                   {formatPercent(stats.growthPercent)}
                 </div>
               </div>
-              <div className="rounded-xl border border-border bg-surface p-3">
+              <div className="card p-3">
                 <div className="text-xs text-muted">Best jump</div>
                 <div className="text-sm font-semibold text-positive">{formatINR(stats.bestGain)}</div>
               </div>
-              <div className="rounded-xl border border-border bg-surface p-3">
+              <div className="card p-3">
                 <div className="text-xs text-muted">Snapshots</div>
                 <div className="text-sm font-semibold">{stats.count}</div>
               </div>
             </div>
           )}
 
-          <div className="rounded-xl border border-border bg-surface p-4">
+          <div className="card p-4">
             <h3 className="mb-3 text-sm font-medium">Snapshot history</h3>
             <div className="space-y-1">
               {sorted.map((s) => (

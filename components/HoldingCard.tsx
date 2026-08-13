@@ -4,6 +4,7 @@ import type { Holding } from "@/lib/types";
 import { valueHolding } from "@/lib/valuation";
 import { formatINR, formatNumber, formatPercent, timeAgo } from "@/lib/format";
 import { useFinanceStore } from "@/lib/store";
+import CategoryIcon from "@/components/CategoryIcon";
 import { ChevronRight } from "lucide-react";
 
 export default function HoldingCard({
@@ -41,10 +42,8 @@ export default function HoldingCard({
   }
 
   return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4 text-left"
-    >
+    <button onClick={onClick} className="card flex w-full items-center gap-3 p-4 text-left active:shadow-none">
+      <CategoryIcon category={holding.category} size={16} />
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium">{holding.name}</div>
         <div className="truncate text-xs text-muted">{detail}</div>
@@ -52,9 +51,9 @@ export default function HoldingCard({
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <div className="text-right">
-          <div className="font-semibold">{formatINR(v.currentValueInr)}</div>
+          <div className="font-semibold tabular-nums">{formatINR(v.currentValueInr)}</div>
           {hasGain && (
-            <div className={`text-xs ${v.gainInr >= 0 ? "text-positive" : "text-negative"}`}>
+            <div className={`text-xs tabular-nums ${v.gainInr >= 0 ? "text-positive" : "text-negative"}`}>
               {formatPercent(v.gainPercent)}
             </div>
           )}

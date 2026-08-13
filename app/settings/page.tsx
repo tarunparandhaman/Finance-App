@@ -76,7 +76,7 @@ export default function SettingsPage() {
   return (
     <PageShell title="Settings">
       <div className="space-y-6">
-        <div className="rounded-2xl border border-border bg-surface p-4">
+        <div className="card p-4">
           <div className="flex items-start gap-3">
             <ShieldCheck size={20} className="mt-0.5 shrink-0 text-primary" />
             <div className="text-sm">
@@ -98,7 +98,7 @@ export default function SettingsPage() {
           <h2 className="px-1 text-sm font-medium text-muted">Backup</h2>
           <button
             onClick={handleExport}
-            className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface p-4 text-left"
+            className="flex w-full items-center gap-3 card p-4 text-left"
           >
             <Download size={18} className="text-primary" />
             <div>
@@ -108,7 +108,7 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={handleImportClick}
-            className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface p-4 text-left"
+            className="flex w-full items-center gap-3 card p-4 text-left"
           >
             <Upload size={18} className="text-primary" />
             <div>

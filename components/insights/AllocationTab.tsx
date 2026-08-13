@@ -44,7 +44,7 @@ export default function AllocationTab() {
 
   return (
     <div className="space-y-4 pb-8">
-      <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="card p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-medium">Target allocation</h3>
           {!editing && (
@@ -109,7 +109,7 @@ export default function AllocationTab() {
         )}
       </div>
 
-      <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="card p-4">
         <h3 className="mb-1 text-sm font-medium">Current allocation</h3>
         <div className="mb-3 text-xs text-muted">{formatINR(totalInr)} total</div>
 

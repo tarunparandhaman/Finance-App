@@ -1,12 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
+  --background: #f7f8fb;
   --surface: #ffffff;
   --foreground: #0f172a;
   --muted: #64748b;
-  --border: #e2e8f0;
+  --border: #e7eaf1;
   --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --accent: #7c3aed;
   --positive: #16a34a;
   --negative: #dc2626;
 }
@@ -18,6 +20,8 @@
   --color-muted: var(--muted);
   --color-border: var(--border);
   --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-accent: var(--accent);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --font-sans: var(--font-geist-sans);
@@ -32,5 +36,23 @@ body {
 
 input, select, textarea {
   font-size: 16px;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.hero-card {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 55%, var(--accent) 130%);
+  color: white;
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 24px -8px rgba(37, 99, 235, 0.45);
 }
 

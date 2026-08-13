@@ -8,9 +8,69 @@ import type {
   AllocationTarget,
   Transaction,
 } from "./types";
+import { baseSymbol, preferredSymbol } from "./stocks";
 
 function makeId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+/**
+ * Merges holdings that represent the same position (e.g. added twice before
+ * the add-flow started merging automatically, or the same stock bought via
+ * both its NSE and BSE listing) into a single row with a quantity-weighted
+ * average price, keeping the earliest holding's id.
+ */
+function dedupeHoldings(holdings: Holding[]): Holding[] {
+  const merged: Holding[] = [];
+  const indexByKey = new Map<string, number>();
+
+  for (const h of holdings) {
+    const key =
+      h.category === "IN_STOCK" || h.category === "US_STOCK"
+        ? `${h.category}:${baseSymbol(h.symbol)}`
+        : h.category === "MUTUAL_FUND"
+          ? `MUTUAL_FUND:${h.schemeCode}`
+          : null;
+
+    if (!key) {
+      merged.push(h);
+      continue;
+    }
+
+    const existingIndex = indexByKey.get(key);
+    if (existingIndex === undefined) {
+      indexByKey.set(key, merged.length);
+      merged.push(h);
+      continue;
+    }
+
+    const existing = merged[existingIndex];
+    if (h.category === "MUTUAL_FUND" && existing.category === "MUTUAL_FUND") {
+      const units = existing.units + h.units;
+      merged[existingIndex] = {
+        ...existing,
+        units,
+        avgNav: (existing.units * existing.avgNav + h.units * h.avgNav) / units,
+        currentNav: h.currentNav ?? existing.currentNav,
+        lastFetched: h.lastFetched ?? existing.lastFetched,
+      };
+    } else if (
+      (h.category === "IN_STOCK" || h.category === "US_STOCK") &&
+      h.category === existing.category
+    ) {
+      const quantity = existing.quantity + h.quantity;
+      merged[existingIndex] = {
+        ...existing,
+        symbol: preferredSymbol(existing.symbol, h.symbol),
+        quantity,
+        avgPrice: (existing.quantity * existing.avgPrice + h.quantity * h.avgPrice) / quantity,
+        currentPrice: h.currentPrice ?? existing.currentPrice,
+        lastFetched: h.lastFetched ?? existing.lastFetched,
+      };
+    }
+  }
+
+  return merged;
 }
 
 export const DEFAULT_TARGET_ALLOCATION: AllocationTarget = {
@@ -176,6 +236,7 @@ export const useFinanceStore = create<FinanceState>()(
 // spinner forever.
 if (typeof window !== "undefined") {
   Promise.resolve(useFinanceStore.persist.rehydrate()).finally(() => {
-    useFinanceStore.setState({ hydrated: true });
+    const deduped = dedupeHoldings(useFinanceStore.getState().holdings);
+    useFinanceStore.setState({ holdings: deduped, hydrated: true });
   });
 }
