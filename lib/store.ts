@@ -16,7 +16,6 @@ interface FinanceState {
   setFxRate: (rate: FxRate) => void;
   replaceAll: (holdings: Holding[]) => void;
   clearAll: () => void;
-  setHydrated: () => void;
 }
 
 export const useFinanceStore = create<FinanceState>()(
@@ -44,11 +43,11 @@ export const useFinanceStore = create<FinanceState>()(
       setFxRate: (rate) => set({ fxRate: rate }),
       replaceAll: (holdings) => set({ holdings }),
       clearAll: () => set({ holdings: [], fxRate: null }),
-      setHydrated: () => set({ hydrated: true }),
     }),
     {
       name: "finance-tracker-storage",
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ holdings: state.holdings, fxRate: state.fxRate }),
     }
   )
 );
