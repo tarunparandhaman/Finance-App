@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Finance Tracker
 
-## Getting Started
+A simple, mobile-friendly personal finance tracker: Indian stocks, US stocks,
+mutual funds, PF (EPF), NPS, and other assets (FD/gold/cash/real estate) — all
+in one place.
 
-First, run the development server:
+## How it works
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **No account, no login.** Everything you add is saved in your browser's
+  local storage only — nothing is sent to any server or database.
+- Because there's no server-side copy of your data, use **Settings → Export
+  backup** regularly. That saves a `.json` file you can keep safe and reload
+  later with **Import backup** (e.g. if you clear your browser data or switch
+  devices).
+- Stock prices and mutual fund NAVs are fetched live from public sources
+  (Yahoo Finance and mfapi.in) through a couple of small routes in `app/api/`.
+  Those routes only fetch public price data — none of your personal holdings
+  ever leave your browser.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Running it on your own computer
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Open a terminal in this folder.
+2. Install dependencies (only needed once, or after pulling new changes):
+   ```bash
+   npm install
+   ```
+3. Start it:
+   ```bash
+   npm run dev
+   ```
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To try it on your phone on the same Wi-Fi, use your computer's local network
+address that `npm run dev` prints out (something like
+`http://192.168.x.x:3000`) instead of `localhost`.
 
-## Learn More
+## Putting it online (hosting it live)
 
-To learn more about Next.js, take a look at the following resources:
+The easiest free option for this kind of app is
+[Vercel](https://vercel.com) (made by the creators of Next.js):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Push this folder to a GitHub repository (already done if you're reading
+   this from GitHub).
+2. Go to [vercel.com/new](https://vercel.com/new), sign in with GitHub, and
+   import this repository.
+3. Leave all settings as default and click **Deploy**.
+4. Vercel gives you a live URL (e.g. `your-app.vercel.app`) you can open from
+   any device, including your phone. You can add it to your phone's home
+   screen for an app-like feel (it's a PWA).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Remember: even once it's live, your data still only lives in *your own
+browser* on whichever device you're using — it doesn't sync between devices
+unless you export/import a backup.
 
-## Deploy on Vercel
+## Tech stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js (App Router, TypeScript), Tailwind CSS, zustand (local storage
+persistence), Recharts.
